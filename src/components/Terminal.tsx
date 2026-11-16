@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { OperatingSystem, TerminalLine, Exercise } from '../types';
+import { OperatingSystem, TerminalLine, Exercise, ThemeMode } from '../types';
 import { TerminalSimulator } from '../lib/terminalSimulator';
 import { sounds } from '../lib/sound';
 import {
@@ -18,6 +18,7 @@ interface TerminalProps {
   onCommandAttempt?: (command: string, isCorrect: boolean) => void;
   crtMode: boolean;
   onToggleCrt: () => void;
+  theme: ThemeMode;
 }
 
 export const TerminalComponent: React.FC<TerminalProps> = ({
@@ -27,6 +28,7 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
   onCommandAttempt,
   crtMode,
   onToggleCrt,
+  theme,
 }) => {
   const [simulator] = useState(() => new TerminalSimulator(os, activeExercise?.startingDir));
   const [lines, setLines] = useState<TerminalLine[]>([]);
@@ -37,6 +39,9 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const isLight = theme === 'light';
+  const isMatrix = theme === 'matrix';
+
   useEffect(() => {
     simulator.setOS(os, activeExercise?.startingDir);
     const banner =
@@ -45,12 +50,12 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
             {
               id: 'init-1',
               type: 'system' as const,
-              content: 'GNU Bash v5.2 // CYBERDECK RIG [CONECTADO]',
+              content: 'GNU Bash v5.2 // IES Benigaslo Sandbox [CONECTADO]',
             },
             {
               id: 'init-2',
               type: 'system' as const,
-              content: 'Escribe los comandos del protocolo y presiona [ENTER]. Prueba escribir "matrix" o "help".',
+              content: 'Escribe los comandos del reto y presiona [ENTER]. Prueba escribir "matrix" o "help".',
             },
           ]
         : [
@@ -142,6 +147,10 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
       className={`flex flex-col h-full rounded-3xl border-2 shadow-2xl overflow-hidden font-mono relative transition-colors ${
         crtMode
           ? 'crt-mode bg-[#021307] border-[#00ff66]/70 shadow-[#00ff66]/20'
+          : isLight
+          ? 'bg-[#0f172a] border-slate-300 shadow-slate-300/50'
+          : isMatrix
+          ? 'bg-[#030d05] border-[#00ff66]/30 shadow-[#00ff66]/10'
           : 'bg-[#080d1a] border-cyan-500/30 shadow-cyan-950/40'
       }`}
     >
@@ -150,6 +159,10 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
         className={`flex items-center justify-between px-4 py-2.5 border-b select-none ${
           crtMode
             ? 'bg-[#031c0a] border-[#00ff66]/40 text-[#00ff66]'
+            : isLight
+            ? 'bg-slate-800 border-slate-700 text-slate-200'
+            : isMatrix
+            ? 'bg-[#020b04] border-[#00ff66]/30 text-[#00ff66]'
             : 'bg-gray-950/90 border-cyan-500/20 text-cyan-300'
         }`}
       >
@@ -163,7 +176,7 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
           <div className="flex items-center space-x-1.5 ml-2 text-xs font-bold">
             <TerminalIcon className="w-3.5 h-3.5" />
             <span>
-              {os === 'linux' ? 'bash // netrunner@benigaslo-rig' : 'powershell // sysadmin@benigaslo'}
+              {os === 'linux' ? 'bash // usuario@ies-benigaslo' : 'powershell // sysadmin@benigaslo'}
             </span>
           </div>
         </div>
@@ -179,6 +192,8 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
             className={`flex items-center space-x-1 px-2.5 py-1 rounded-xl text-[11px] font-bold transition border ${
               crtMode
                 ? 'bg-[#00ff66] text-black border-[#00ff66] font-black'
+                : isLight
+                ? 'bg-slate-700 text-slate-200 hover:text-white border-slate-600'
                 : 'bg-gray-800 text-gray-300 hover:text-white border-gray-700'
             }`}
             title="Activar / Desactivar Modo Monitor CRT Matrix"
@@ -193,7 +208,9 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
 
           <button
             onClick={clearScreen}
-            className="flex items-center space-x-1 px-2 py-1 rounded-lg text-[11px] text-gray-400 hover:text-cyan-300 hover:bg-gray-800/80 transition"
+            className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-[11px] transition ${
+              isLight ? 'text-slate-300 hover:text-white hover:bg-slate-700' : 'text-gray-400 hover:text-cyan-300 hover:bg-gray-800/80'
+            }`}
             title="Limpiar terminal"
           >
             <Trash2 className="w-3 h-3" />
@@ -205,7 +222,7 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
       {/* Terminal Output Area */}
       <div
         className={`flex-1 p-4 overflow-y-auto space-y-2 text-xs sm:text-sm leading-relaxed scrollbar-thin ${
-          crtMode ? 'text-[#00ff66] scrollbar-thumb-emerald-900' : 'text-gray-300 scrollbar-thumb-cyan-950'
+          crtMode ? 'text-[#00ff66] scrollbar-thumb-emerald-900' : 'text-gray-200 scrollbar-thumb-slate-700'
         }`}
       >
         {lines.map((line) => (
@@ -223,15 +240,13 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
                 >
                   {line.prompt}
                 </span>
-                <span className={crtMode ? 'text-white font-bold' : 'text-white font-bold'}>
-                  {line.content}
-                </span>
+                <span className="text-white font-bold">{line.content}</span>
               </div>
             )}
             {line.type === 'output' && (
               <pre
                 className={`whitespace-pre-wrap font-mono pl-3 border-l-2 ${
-                  crtMode ? 'text-[#33ff88] border-[#00ff66]/50' : 'text-gray-300 border-gray-800'
+                  crtMode ? 'text-[#33ff88] border-[#00ff66]/50' : 'text-gray-300 border-gray-750'
                 }`}
               >
                 {line.content}
@@ -242,7 +257,7 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
                 className={`font-mono pl-3 border-l-2 py-1.5 rounded-r ${
                   crtMode
                     ? 'text-red-400 border-red-500 bg-red-950/40'
-                    : 'text-rose-400 border-rose-500 bg-rose-950/30'
+                    : 'text-rose-400 border-rose-500 bg-rose-950/40'
                 }`}
               >
                 {line.content}
@@ -260,7 +275,7 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
               </div>
             )}
             {line.type === 'system' && (
-              <div className={`italic text-[11px] ${crtMode ? 'text-[#009944]' : 'text-gray-500'}`}>
+              <div className={`italic text-[11px] ${crtMode ? 'text-[#009944]' : 'text-gray-400'}`}>
                 # {line.content}
               </div>
             )}
@@ -273,7 +288,11 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
       <form
         onSubmit={handleSubmit}
         className={`flex items-center gap-2 p-3 border-t ${
-          crtMode ? 'bg-[#031c0a] border-[#00ff66]/30' : 'bg-gray-950/80 border-cyan-500/20'
+          crtMode
+            ? 'bg-[#031c0a] border-[#00ff66]/30'
+            : isLight
+            ? 'bg-slate-950 border-slate-800'
+            : 'bg-gray-950/90 border-cyan-500/20'
         }`}
       >
         <span
@@ -297,7 +316,7 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
           className={`flex-1 bg-transparent outline-none font-mono text-xs sm:text-sm font-bold ${
             crtMode
               ? 'text-[#00ff66] placeholder-[#007733] caret-[#00ff66]'
-              : 'text-gray-100 placeholder-gray-600 caret-cyan-400'
+              : 'text-white placeholder-gray-500 caret-cyan-400'
           }`}
           autoFocus
         />
@@ -318,14 +337,18 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
       {/* Quick helper tip */}
       <div
         className={`px-4 py-1.5 border-t flex items-center justify-between text-[11px] ${
-          crtMode ? 'bg-[#010e05] border-[#00ff66]/20 text-[#00aa44]' : 'bg-[#050912] border-gray-900 text-gray-500'
+          crtMode
+            ? 'bg-[#010e05] border-[#00ff66]/20 text-[#00aa44]'
+            : isLight
+            ? 'bg-slate-900 border-slate-800 text-slate-400'
+            : 'bg-[#050912] border-gray-900 text-gray-500'
         }`}
       >
         <span className="flex items-center gap-1">
-          <HelpCircle className="w-3 h-3" />
-          Tip friki: Escribe "matrix", "konami", "hack" o "sudo su" en la terminal
+          <HelpCircle className="w-3 h-3 text-cyan-400" />
+          Tip: Usa las flechas ↑ ↓ para recuperar comandos anteriores
         </span>
-        <span className="font-mono font-bold">{crtMode ? 'PHOSPHOR GREEN CRT' : 'CYBER-PROMPT v3'}</span>
+        <span className="font-mono font-bold">{crtMode ? 'PHOSPHOR GREEN CRT' : 'CYBER-SANDBOX v3'}</span>
       </div>
     </div>
   );

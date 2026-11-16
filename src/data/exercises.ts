@@ -1,9 +1,9 @@
 import { Exercise, ExerciseModule } from '../types';
 
 export const BASE_EXERCISES: Exercise[] = [
-  // ==========================================
-  // WINDOWS (CMD / PowerShell)
-  // ==========================================
+  // =========================================================================
+  // WINDOWS (CMD / PowerShell) - TEMARIO COMPLETO UD3 & PRÁCTICAS IES BENIGASLO
+  // =========================================================================
   {
     id: 'win-01',
     title: 'Crear una carpeta básica',
@@ -149,6 +149,24 @@ export const BASE_EXERCISES: Exercise[] = [
     simulatedOutput: 'C:\\Users\\Alumno\\Desktop> rmdir /s /q Proyecto\n(Carpeta Proyecto y todo su árbol eliminados)',
   },
   {
+    id: 'win-09',
+    title: 'Crear lote de carpetas temáticas',
+    os: 'windows',
+    module: 'Windows - Creación y Navegación',
+    difficulty: 'fácil',
+    xpReward: 60,
+    startingDir: 'C:\\Users\\Alumno',
+    mission: 'Dentro de una carpeta llamada Multimedia, crea a la vez: Música, Videos y Notas.',
+    explanation: 'Crea primero Multimedia y luego en su interior genera las tres subcarpetas en un comando.',
+    hint: 'Usa: mkdir Multimedia\\Música Multimedia\\Videos Multimedia\\Notas',
+    validCommandPatterns: [
+      /^mkdir\s+multimedia\\m[uú]sica\s+multimedia\\videos\s+multimedia\\notas$/i,
+      /^md\s+multimedia\\m[uú]sica\s+multimedia\\videos\s+multimedia\\notas$/i,
+      /mkdir\s+m[uú]sica\s+videos\s+notas/i
+    ],
+    simulatedOutput: 'C:\\Users\\Alumno> mkdir Multimedia\\Música Multimedia\\Videos Multimedia\\Notas\n(Directorios creados en Multimedia: Música, Videos, Notas)',
+  },
+  {
     id: 'win-10',
     title: 'Crear archivo con contenido usando redirección',
     os: 'windows',
@@ -184,6 +202,23 @@ export const BASE_EXERCISES: Exercise[] = [
     simulatedOutput: 'C:\\Users\\Alumno\\Notas> type lista.txt\nTareas pendientes',
   },
   {
+    id: 'win-12',
+    title: 'Copiar un archivo a la carpeta superior',
+    os: 'windows',
+    module: 'Windows - Archivos y Documentos',
+    difficulty: 'medio',
+    xpReward: 65,
+    startingDir: 'C:\\Users\\Alumno\\Multimedia\\Notas',
+    mission: 'Copia el archivo lista.txt hacia la carpeta hermana Música (..\\Música\\).',
+    explanation: 'La notación .. hace referencia al directorio padre, permitiendo moverse en rutas relativas.',
+    hint: 'Usa: copy lista.txt ..\\Música\\',
+    validCommandPatterns: [
+      /^copy\s+lista\.txt\s+\.\.\\m[uú]sica\\?$/i,
+      /^copy-item\s+lista\.txt\s+\.\.\\m[uú]sica\\?$/i
+    ],
+    simulatedOutput: 'C:\\Users\\Alumno\\Multimedia\\Notas> copy lista.txt ..\\Música\\\n        1 archivo(s) copiado(s).',
+  },
+  {
     id: 'win-14',
     title: 'Listar archivos y carpetas ocultas',
     os: 'windows',
@@ -202,6 +237,39 @@ export const BASE_EXERCISES: Exercise[] = [
     simulatedOutput: 'C:\\Users\\Alumno> dir /a\n Directorio de C:\\Users\\Alumno\n\n16/11/2026  12:00    <DIR>          .\n16/11/2026  12:00    <DIR>          ..\n16/11/2026  10:15    <DIR>   [H]    .config\n16/11/2026  09:30             1.024 NTUSER.DAT\n16/11/2026  11:45    <DIR>          Documentos',
   },
   {
+    id: 'win-15',
+    title: 'Renombrar una carpeta',
+    os: 'windows',
+    module: 'Windows - Creación y Navegación',
+    difficulty: 'fácil',
+    xpReward: 55,
+    startingDir: 'C:\\Users\\Alumno\\Multimedia',
+    mission: 'Cambia el nombre de la carpeta "Notas" por "Textos".',
+    explanation: 'El comando ren se usa exactamente igual para carpetas que para archivos.',
+    hint: 'Escribe: ren Notas Textos',
+    validCommandPatterns: [
+      /^ren(ame)?\s+notas\s+textos$/i
+    ],
+    simulatedOutput: 'C:\\Users\\Alumno\\Multimedia> ren Notas Textos\n(Carpeta Notas renombrada a Textos)',
+  },
+  {
+    id: 'win-16',
+    title: 'Eliminar archivos con comodines (*.txt)',
+    os: 'windows',
+    module: 'Windows - Eliminación y Limpieza',
+    difficulty: 'medio',
+    xpReward: 70,
+    startingDir: 'C:\\Users\\Alumno\\Multimedia',
+    mission: 'Elimina todos los archivos que terminen en .txt dentro de la carpeta Textos.',
+    explanation: 'El asterisco (*) actúa como comodín para cualquier cadena de caracteres.',
+    hint: 'Escribe: del Textos\\*.txt',
+    validCommandPatterns: [
+      /^del\s+textos\\\*\.txt$/i,
+      /^erase\s+textos\\\*\.txt$/i
+    ],
+    simulatedOutput: 'C:\\Users\\Alumno\\Multimedia> del Textos\\*.txt\n(Archivos .txt eliminados en Textos)',
+  },
+  {
     id: 'win-17',
     title: 'Crear estructuras de carpetas anidadas',
     os: 'windows',
@@ -218,7 +286,6 @@ export const BASE_EXERCISES: Exercise[] = [
     ],
     simulatedOutput: 'C:\\Users\\Alumno> mkdir Empresa\\RecursosHumanos\\Contratos\n(Estructura anidada creada: Empresa -> RecursosHumanos -> Contratos)',
   },
-  // NUEVOS RETOS WINDOWS EXTRAÍDOS DE UD3 (Atributos, Árbol y Tuberías)
   {
     id: 'win-tree-01',
     title: 'Ver árbol de directorios con archivos',
@@ -254,6 +321,23 @@ export const BASE_EXERCISES: Exercise[] = [
     simulatedOutput: 'C:\\Users\\Alumno\\Documentos> attrib +h claves.txt\n(Atributo [H] Oculto asignado a claves.txt)',
   },
   {
+    id: 'win-attrib-02',
+    title: 'Protección contra escritura (+r)',
+    os: 'windows',
+    module: 'Windows - Inspección y Atributos',
+    difficulty: 'medio',
+    xpReward: 70,
+    startingDir: 'C:\\Users\\Alumno\\Documentos',
+    mission: 'Marca el archivo "claves.txt" como de solo lectura usando attrib.',
+    explanation: 'attrib +r activa el atributo Read-Only (Solo Lectura) protegiendo el archivo de modificaciones.',
+    hint: 'Escribe: attrib +r claves.txt',
+    validCommandPatterns: [
+      /^attrib\s+\+r\s+claves\.txt$/i,
+      /^attrib\s+claves\.txt\s+\+r$/i
+    ],
+    simulatedOutput: 'C:\\Users\\Alumno\\Documentos> attrib +r claves.txt\n(Atributo [R] Solo Lectura asignado a claves.txt)',
+  },
+  {
     id: 'win-pipe-01',
     title: 'Filtrar texto en Windows con findstr',
     os: 'windows',
@@ -287,10 +371,27 @@ export const BASE_EXERCISES: Exercise[] = [
     ],
     simulatedOutput: 'C:\\Users\\Alumno\\Desktop> dir /b > catalogo.txt\n(Salida redirigida a catalogo.txt)',
   },
+  {
+    id: 'win-disk-01',
+    title: 'Chequeo de disco en Windows (chkdsk)',
+    os: 'windows',
+    module: 'Windows - Almacenamiento y Sistema',
+    difficulty: 'medio',
+    xpReward: 80,
+    startingDir: 'C:\\Windows\\system32',
+    mission: 'Ejecuta el verificador de volumen y sistema de archivos de la unidad C: en modo solo lectura.',
+    explanation: 'chkdsk C: examina metadatos del sistema de archivos NTFS/FAT sin modificar sectores.',
+    hint: 'Escribe: chkdsk C:',
+    validCommandPatterns: [
+      /^chkdsk\s+c:?$/i,
+      /^chkdsk$/i
+    ],
+    simulatedOutput: 'C:\\Windows\\system32> chkdsk C:\nEl tipo del sistema de archivos es NTFS.\nEtiqueta de volumen: OS.\nEtapa 1: Examen de la estructura básica del sistema de archivos...\nEtapa 2: Examen de la vinculación de nombres de archivo...\nEtapa 3: Examen de los descriptores de seguridad...\nWindows ha comprobado el sistema de archivos y no ha encontrado problemas.',
+  },
 
-  // ==========================================
-  // LINUX (Bash)
-  // ==========================================
+  // =========================================================================
+  // LINUX (Bash) - TEMARIO COMPLETO UD3 & PRÁCTICAS IES BENIGASLO
+  // =========================================================================
   {
     id: 'linux-01',
     title: 'Crear un archivo de tamaño 0',
@@ -391,6 +492,22 @@ export const BASE_EXERCISES: Exercise[] = [
     simulatedOutput: 'usuario@ies-benigaslo:~$ ls -la /\ntotal 64\ndrwxr-xr-x  18 root root  4096 nov 16 00:00 .\ndrwxr-xr-x  18 root root  4096 nov 16 00:00 ..\nlrwxrwxrwx   1 root root     7 nov 16 00:00 bin -> usr/bin\ndrwxr-xr-x   2 root root  4096 nov 16 00:00 boot\ndrwxr-xr-x  14 root root  3120 nov 16 00:00 dev\ndrwxr-xr-x 115 root root 12288 nov 16 00:00 etc\ndrwxr-xr-x   3 root root  4096 nov 16 00:00 home\ndrwx------   2 root root 16384 nov 16 00:00 root\ndrwxrwxrwt  10 root root  4096 nov 16 00:00 tmp',
   },
   {
+    id: 'linux-ls-size',
+    title: 'Listar archivos ordenados por tamaño (ls -S)',
+    os: 'linux',
+    module: 'Linux - Archivos y Navegación',
+    difficulty: 'medio',
+    xpReward: 70,
+    startingDir: '/var/log',
+    mission: 'Muestra en formato largo (-l) los archivos de /var/log ordenados por tamaño (-S) de mayor a menor.',
+    explanation: 'El parámetro -S de ls ordena los ficheros según el tamaño que ocupan en disco.',
+    hint: 'Escribe: ls -lS  o  ls -l -S',
+    validCommandPatterns: [
+      /^ls\s+(-lS|-Sl|-l\s+-S|-S\s+-l)(\s+\/var\/log)?$/
+    ],
+    simulatedOutput: 'usuario@ies-benigaslo:/var/log$ ls -lS\ntotal 1840\n-rw-r-----  1 syslog adm 854012 nov 16 12:00 syslog\n-rw-r-----  1 syslog adm 312040 nov 16 11:30 auth.log\n-rw-r--r--  1 root   root 124500 nov 16 10:00 dpkg.log',
+  },
+  {
     id: 'linux-09',
     title: 'Navegación y verificación de ruta',
     os: 'linux',
@@ -459,6 +576,22 @@ export const BASE_EXERCISES: Exercise[] = [
     simulatedOutput: 'usuario@ies-benigaslo:~$ cp /etc/motd PRUEBA/mensaje\n(Archivo copiado: PRUEBA/mensaje)',
   },
   {
+    id: 'linux-cp-preserve',
+    title: 'Copiar preservando atributos y fecha (cp -p)',
+    os: 'linux',
+    module: 'Linux - Archivos y Navegación',
+    difficulty: 'medio',
+    xpReward: 75,
+    startingDir: '/home/usuario',
+    mission: 'Copia "archivo1.txt" a "archivo_respaldo.txt" manteniendo intacta la fecha de modificación original (-p).',
+    explanation: 'cp -p (preserve) copia conservando marcas de tiempo, propietario y permisos originales.',
+    hint: 'Escribe: cp -p archivo1.txt archivo_respaldo.txt',
+    validCommandPatterns: [
+      /^cp\s+-p\s+archivo1\.txt\s+archivo_respaldo\.txt$/
+    ],
+    simulatedOutput: 'usuario@ies-benigaslo:~$ cp -p archivo1.txt archivo_respaldo.txt\n(Archivo copiado manteniendo marcas temporales y permisos)',
+  },
+  {
     id: 'linux-18',
     title: 'Ocultar un archivo en Linux',
     os: 'linux',
@@ -493,6 +626,38 @@ export const BASE_EXERCISES: Exercise[] = [
     simulatedOutput: 'usuario@ies-benigaslo:~/PRUEBA$ rm -rf dir1\n(Directorio dir1 eliminado recursivamente)',
   },
   {
+    id: 'linux-view-head',
+    title: 'Visualizar las primeras líneas (head)',
+    os: 'linux',
+    module: 'Linux - Visualización de Archivos',
+    difficulty: 'fácil',
+    xpReward: 60,
+    startingDir: '/home/usuario',
+    mission: 'Muestra las primeras 5 líneas del archivo "/etc/passwd" usando el comando head.',
+    explanation: 'head imprime las primeras líneas de un archivo (por defecto 10; con -n 5 especifica cinco).',
+    hint: 'Escribe: head -n 5 /etc/passwd',
+    validCommandPatterns: [
+      /^head\s+(-n\s*5|-5)\s+\/etc\/passwd$/
+    ],
+    simulatedOutput: 'usuario@ies-benigaslo:~$ head -n 5 /etc/passwd\nroot:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\nbin:x:2:2:bin:/bin:/usr/sbin/nologin\nsys:x:3:3:sys:/dev:/usr/sbin/nologin\nsync:x:4:65534:sync:/bin:/bin/sync',
+  },
+  {
+    id: 'linux-view-tail',
+    title: 'Visualizar las últimas líneas (tail)',
+    os: 'linux',
+    module: 'Linux - Visualización de Archivos',
+    difficulty: 'fácil',
+    xpReward: 60,
+    startingDir: '/home/usuario',
+    mission: 'Muestra las últimas 3 líneas del archivo "/var/log/syslog" usando el comando tail.',
+    explanation: 'tail muestra el final de un archivo. Con -n 3 imprime exactamente las últimas 3 líneas.',
+    hint: 'Escribe: tail -n 3 /var/log/syslog',
+    validCommandPatterns: [
+      /^tail\s+(-n\s*3|-3)\s+\/var\/log\/syslog$/
+    ],
+    simulatedOutput: 'usuario@ies-benigaslo:~$ tail -n 3 /var/log/syslog\nNov 16 14:20:01 ies-benigaslo CRON[2040]: (root) CMD (/usr/local/bin/backup.sh)\nNov 16 14:21:15 ies-benigaslo systemd[1]: Started User Manager for UID 1000.\nNov 16 14:22:00 ies-benigaslo kernel: [ 450.210] usb 1-1: reset high-speed USB device',
+  },
+  {
     id: 'linux-24',
     title: 'Creación de enlace simbólico (Soft link)',
     os: 'linux',
@@ -510,7 +675,7 @@ export const BASE_EXERCISES: Exercise[] = [
   },
   {
     id: 'linux-29',
-    title: 'Gestión de permisos con chmod',
+    title: 'Gestión de permisos simbólicos con chmod',
     os: 'linux',
     module: 'Linux - Enlaces y Permisos',
     difficulty: 'avanzado',
@@ -540,7 +705,6 @@ export const BASE_EXERCISES: Exercise[] = [
     ],
     simulatedOutput: 'usuario@ies-benigaslo:~$ chmod 755 deploy.sh\n-rwxr-xr-x 1 usuario usuario 1240 nov 16 12:00 deploy.sh',
   },
-  // NUEVOS RETOS LINUX EXTRAÍDOS DE UD3 (Pipes, Find, Almacenamiento, Tar)
   {
     id: 'linux-pipe-01',
     title: 'Tuberías (Pipes): Conteo de procesos o archivos',
@@ -556,6 +720,86 @@ export const BASE_EXERCISES: Exercise[] = [
       /^ls\s+\/etc\/?\s*\|\s*wc\s+-l$/
     ],
     simulatedOutput: 'usuario@ies-benigaslo:~$ ls /etc | wc -l\n184',
+  },
+  {
+    id: 'linux-cut-01',
+    title: 'Extraer columnas de texto con cut',
+    os: 'linux',
+    module: 'Linux - Filtros y Procesamiento',
+    difficulty: 'medio',
+    xpReward: 85,
+    startingDir: '/home/usuario',
+    mission: 'Extrae únicamente el primer campo (los nombres de usuario) del archivo /etc/passwd usando dos puntos (:) como delimitador.',
+    explanation: 'cut -d: -f1 define los dos puntos como separador (-d) y selecciona la columna 1 (-f1).',
+    hint: 'Escribe: cut -d: -f1 /etc/passwd',
+    validCommandPatterns: [
+      /^cut\s+-d\s*:\s*-f\s*1\s+\/etc\/passwd$/
+    ],
+    simulatedOutput: 'usuario@ies-benigaslo:~$ cut -d: -f1 /etc/passwd\nroot\ndaemon\nbin\nsys\nsync\ngames\nusuario',
+  },
+  {
+    id: 'linux-sort-01',
+    title: 'Ordenar líneas alfabéticamente con sort',
+    os: 'linux',
+    module: 'Linux - Filtros y Procesamiento',
+    difficulty: 'fácil',
+    xpReward: 65,
+    startingDir: '/home/usuario',
+    mission: 'Ordena alfabéticamente el contenido del archivo "alumnos.txt" y muéstralo por pantalla.',
+    explanation: 'El comando sort ordena las líneas de texto en orden ASCII / alfabético estándar.',
+    hint: 'Escribe: sort alumnos.txt',
+    validCommandPatterns: [
+      /^sort\s+alumnos\.txt$/
+    ],
+    simulatedOutput: 'usuario@ies-benigaslo:~$ sort alumnos.txt\nAlejandro Martínez\nBeatriz Navarro\nCarlos Gómez\nDaniela Soler\nElena Valls',
+  },
+  {
+    id: 'linux-grep-01',
+    title: 'Filtrado de texto con grep',
+    os: 'linux',
+    module: 'Linux - Filtros y Procesamiento',
+    difficulty: 'medio',
+    xpReward: 70,
+    startingDir: '/home/usuario',
+    mission: 'Busca todas las líneas que contengan la palabra "cat" dentro del archivo "diccionario.txt".',
+    explanation: 'grep busca patrones y cadenas de texto dentro de archivos o flujos de entrada.',
+    hint: 'Escribe: grep "cat" diccionario.txt  (o grep cat diccionario.txt)',
+    validCommandPatterns: [
+      /^grep\s+["']?cat["']?\s+diccionario\.txt$/
+    ],
+    simulatedOutput: 'usuario@ies-benigaslo:~$ grep "cat" diccionario.txt\nAlcatraz/M\nDecatur/M\nHecate/M\ncatastrophe/S\nscattered/U',
+  },
+  {
+    id: 'linux-grep-inverse',
+    title: 'Búsqueda inversa con grep -v',
+    os: 'linux',
+    module: 'Linux - Filtros y Procesamiento',
+    difficulty: 'medio',
+    xpReward: 75,
+    startingDir: '/home/usuario',
+    mission: 'Muestra todas las líneas del archivo "servicios.conf" que NO contengan comentarios (#).',
+    explanation: 'El modificador -v invierte el sentido de búsqueda, mostrando las líneas que no coinciden.',
+    hint: 'Escribe: grep -v "#" servicios.conf',
+    validCommandPatterns: [
+      /^grep\s+-v\s+["']?#["']?\s+servicios\.conf$/
+    ],
+    simulatedOutput: 'usuario@ies-benigaslo:~$ grep -v "#" servicios.conf\nPORT=8080\nHOST=0.0.0.0\nMAX_CONN=500\nSSL_ENABLE=true',
+  },
+  {
+    id: 'linux-wc-01',
+    title: 'Conteo de líneas con wc',
+    os: 'linux',
+    module: 'Linux - Filtros y Procesamiento',
+    difficulty: 'fácil',
+    xpReward: 60,
+    startingDir: '/home/usuario',
+    mission: 'Cuenta cuántas líneas contiene el archivo "archivo1.txt" utilizando el comando wc.',
+    explanation: 'El parámetro -l (lines) indica a wc que solo imprima el total de saltos de línea.',
+    hint: 'Escribe: wc -l archivo1.txt',
+    validCommandPatterns: [
+      /^wc\s+-l\s+archivo1\.txt$/
+    ],
+    simulatedOutput: 'usuario@ies-benigaslo:~$ wc -l archivo1.txt\n42 archivo1.txt',
   },
   {
     id: 'linux-find-01',
@@ -574,10 +818,26 @@ export const BASE_EXERCISES: Exercise[] = [
     simulatedOutput: 'usuario@ies-benigaslo:~$ find /var -name "*.log"\n/var/log/dpkg.log\n/var/log/auth.log\n/var/log/syslog\n/var/log/boot.log\n/var/log/nginx/access.log',
   },
   {
+    id: 'linux-find-size',
+    title: 'Búsqueda por tamaño con find',
+    os: 'linux',
+    module: 'Linux - Búsqueda y Localización',
+    difficulty: 'avanzado',
+    xpReward: 85,
+    startingDir: '/home/usuario',
+    mission: 'Busca en /var/log todos los archivos que pesen más de 1 Megabyte (+1M).',
+    explanation: 'El parámetro -size +1M filtra ficheros por encima del tamaño indicado.',
+    hint: 'Escribe: find /var/log -size +1M',
+    validCommandPatterns: [
+      /^find\s+\/var\/log\/?\s+-size\s+\+1M$/
+    ],
+    simulatedOutput: 'usuario@ies-benigaslo:~$ find /var/log -size +1M\n/var/log/journal/system.journal\n/var/log/syslog.1',
+  },
+  {
     id: 'linux-disk-01',
     title: 'Inspeccionar espacio libre en disco',
     os: 'linux',
-    module: 'Linux - Almacenamiento y Sistema',
+    module: 'Linux - Almacenamiento y RAID',
     difficulty: 'fácil',
     xpReward: 60,
     startingDir: '/home/usuario',
@@ -593,7 +853,7 @@ export const BASE_EXERCISES: Exercise[] = [
     id: 'linux-disk-02',
     title: 'Comprobar tamaño ocupado por una carpeta (du)',
     os: 'linux',
-    module: 'Linux - Almacenamiento y Sistema',
+    module: 'Linux - Almacenamiento y RAID',
     difficulty: 'medio',
     xpReward: 70,
     startingDir: '/home/usuario',
@@ -604,6 +864,39 @@ export const BASE_EXERCISES: Exercise[] = [
       /^du\s+-sh\s+\/var\/log\/?$/
     ],
     simulatedOutput: 'usuario@ies-benigaslo:~$ du -sh /var/log\n428M\t/var/log',
+  },
+  {
+    id: 'linux-lsblk',
+    title: 'Listar dispositivos de bloques y particiones',
+    os: 'linux',
+    module: 'Linux - Almacenamiento y RAID',
+    difficulty: 'medio',
+    xpReward: 75,
+    startingDir: '/home/usuario',
+    mission: 'Muestra en forma de árbol los discos y particiones disponibles en la máquina con lsblk.',
+    explanation: 'lsblk lista información detallada sobre todos los dispositivos de almacenamiento en bloque.',
+    hint: 'Escribe: lsblk',
+    validCommandPatterns: [
+      /^lsblk$/
+    ],
+    simulatedOutput: 'usuario@ies-benigaslo:~$ lsblk\nNAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS\nsda      8:0    0  120G  0 disk \n├─sda1   8:1    0  118G  0 part /\n└─sda2   8:2    0    2G  0 part [SWAP]\nsdb      8:16   0  500G  0 disk \n└─sdb1   8:17   0  500G  0 part /mnt/datos',
+  },
+  {
+    id: 'linux-raid1-mdadm',
+    title: 'Creación de matriz RAID 1 con mdadm (Actividad RAID)',
+    os: 'linux',
+    module: 'Linux - Almacenamiento y RAID',
+    difficulty: 'avanzado',
+    xpReward: 100,
+    startingDir: '/home/usuario',
+    mission: 'Crea un dispositivo RAID 1 en espejo llamado "/dev/md0" usando dos discos: /dev/sdb1 y /dev/sdc1.',
+    explanation: 'mdadm --create /dev/md0 --level=1 --raid-devices=2 /dev/sdb1 /dev/sdc1 inicializa un RAID 1 por software en Linux.',
+    hint: 'Usa: mdadm --create /dev/md0 --level=1 --raid-devices=2 /dev/sdb1 /dev/sdc1',
+    validCommandPatterns: [
+      /^mdadm\s+--create\s+\/dev\/md0\s+--level=1\s+--raid-devices=2\s+\/dev\/sdb1\s+\/dev\/sdc1$/,
+      /^sudo\s+mdadm\s+--create\s+\/dev\/md0\s+--level=1\s+--raid-devices=2\s+\/dev\/sdb1\s+\/dev\/sdc1$/
+    ],
+    simulatedOutput: 'usuario@ies-benigaslo:~$ mdadm --create /dev/md0 --level=1 --raid-devices=2 /dev/sdb1 /dev/sdc1\nmdadm: Note: checking device /dev/sdb1...\nmdadm: Note: checking device /dev/sdc1...\nmdadm: Defaulting to version 1.2 metadata\nmdadm: array /dev/md0 started.\n(Matriz RAID 1 creada con éxito en /dev/md0 con redundancia en espejo)',
   },
   {
     id: 'linux-tar-01',
@@ -620,49 +913,15 @@ export const BASE_EXERCISES: Exercise[] = [
       /^tar\s+(-cvf|cvf)\s+copia\.tar\s+Documentos\/?$/
     ],
     simulatedOutput: 'usuario@ies-benigaslo:~$ tar -cvf copia.tar Documentos\nDocumentos/\nDocumentos/informe.txt\nDocumentos/presupuesto.pdf\nDocumentos/notas.md\n(Paquete copia.tar creado correctamente)',
-  },
-  {
-    id: 'linux-grep-01',
-    title: 'Filtrado de texto con grep',
-    os: 'linux',
-    module: 'Linux - Tuberías y Redirecciones',
-    difficulty: 'medio',
-    xpReward: 70,
-    startingDir: '/home/usuario',
-    mission: 'Busca todas las líneas que contengan la palabra "cat" dentro del archivo "diccionario.txt".',
-    explanation: 'grep busca patrones y cadenas de texto dentro de archivos o flujos de entrada.',
-    hint: 'Escribe: grep "cat" diccionario.txt  (o grep cat diccionario.txt)',
-    validCommandPatterns: [
-      /^grep\s+["']?cat["']?\s+diccionario\.txt$/
-    ],
-    simulatedOutput: 'usuario@ies-benigaslo:~$ grep "cat" diccionario.txt\nAlcatraz/M\nDecatur/M\nHecate/M\ncatastrophe/S\nscattered/U',
-  },
-  {
-    id: 'linux-wc-01',
-    title: 'Conteo de líneas con wc',
-    os: 'linux',
-    module: 'Linux - Tuberías y Redirecciones',
-    difficulty: 'fácil',
-    xpReward: 60,
-    startingDir: '/home/usuario',
-    mission: 'Cuenta cuántas líneas contiene el archivo "archivo1.txt" utilizando el comando wc.',
-    explanation: 'El parámetro -l (lines) indica a wc que solo imprima el total de saltos de línea.',
-    hint: 'Escribe: wc -l archivo1.txt',
-    validCommandPatterns: [
-      /^wc\s+-l\s+archivo1\.txt$/
-    ],
-    simulatedOutput: 'usuario@ies-benigaslo:~$ wc -l archivo1.txt\n42 archivo1.txt',
   }
 ];
 
-// Helper to get custom exercises created dynamically by the tutor
 export function getStoredCustomExercises(): Exercise[] {
   if (typeof window === 'undefined') return [];
   const saved = localStorage.getItem('comandquest_custom_exercises');
   if (saved) {
     try {
       const parsed: Exercise[] = JSON.parse(saved);
-      // Re-hydrate regex objects if string
       return parsed.map((e) => ({
         ...e,
         validCommandPatterns: e.validCommandPatterns.map((p) => {

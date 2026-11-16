@@ -2,6 +2,8 @@ export type OperatingSystem = 'linux' | 'windows';
 
 export type UserRole = 'student' | 'teacher';
 
+export type ThemeMode = 'dark' | 'light' | 'matrix';
+
 export interface UserProfile {
   id: string;
   email: string;

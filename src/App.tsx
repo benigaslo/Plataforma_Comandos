@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { UserProfile, OperatingSystem, Exercise } from './types';
+import { UserProfile, OperatingSystem, Exercise, ThemeMode } from './types';
 import { getAllExercises, getModulesForExercises } from './data/exercises';
 import { BADGES } from './data/badges';
 import {
@@ -39,16 +39,24 @@ export const App: React.FC = () => {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [levelUpData, setLevelUpData] = useState<{ newLevel: number; newXp: number } | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(() => sounds.isEnabled());
-  
-  // Matrix theme state (default to true to showcase the Matrix aesthetic!)
-  const [matrixMode, setMatrixMode] = useState<boolean>(() => {
-    const saved = localStorage.getItem('comandquest_matrix');
-    return saved !== null ? saved === 'true' : true;
+
+  // Theme state: 'light' | 'dark' | 'matrix'
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    const saved = localStorage.getItem('comandquest_theme');
+    if (saved === 'light' || saved === 'dark' || saved === 'matrix') {
+      return saved;
+    }
+    return 'matrix'; // Default to Matrix aesthetic as requested
   });
 
   const [crtMode, setCrtMode] = useState<boolean>(() => {
     return localStorage.getItem('comandquest_crt') === 'true';
   });
+
+  // Sync body class with theme
+  useEffect(() => {
+    document.body.className = `theme-${theme}`;
+  }, [theme]);
 
   // Reload dynamic exercises
   const refreshExercises = useCallback(() => {
@@ -120,10 +128,9 @@ export const App: React.FC = () => {
     setSoundEnabled(newState);
   };
 
-  const handleToggleMatrix = () => {
-    const next = !matrixMode;
-    setMatrixMode(next);
-    localStorage.setItem('comandquest_matrix', String(next));
+  const handleSelectTheme = (newTheme: ThemeMode) => {
+    setTheme(newTheme);
+    localStorage.setItem('comandquest_theme', newTheme);
   };
 
   const handleToggleCrt = () => {
@@ -142,7 +149,7 @@ export const App: React.FC = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-[#030805] flex items-center justify-center text-[#00ff66] font-mono text-sm matrix-glow">
-        CONECTANDO AL NODO MATRIZ IES BENIGASLO...
+        INICIALIZANDO COMANDQUEST...
       </div>
     );
   }
@@ -150,13 +157,9 @@ export const App: React.FC = () => {
   const isCompleted = user.completed_exercises.includes(activeExercise.id);
 
   return (
-    <div
-      className={`min-h-screen flex flex-col relative selection:bg-[#00ff66] selection:text-black transition-colors duration-500 ${
-        matrixMode ? 'bg-[#030805] text-[#d4ffe0]' : 'bg-[#070b14] text-gray-100'
-      }`}
-    >
-      {/* Background Matrix Digital Rain Animation */}
-      {matrixMode && <MatrixRain opacity={0.25} />}
+    <div className="min-h-screen flex flex-col relative selection:bg-[#00ff66] selection:text-black transition-colors duration-300">
+      {/* Background Matrix Digital Rain Animation (Only active in Matrix theme) */}
+      {theme === 'matrix' && <MatrixRain opacity={0.2} speedMs={80} />}
 
       {/* Top Navigation Bar */}
       <Navbar
@@ -169,8 +172,8 @@ export const App: React.FC = () => {
         onOpenTeacherPanel={() => setIsTeacherPanelOpen(true)}
         soundEnabled={soundEnabled}
         onToggleSound={handleToggleSound}
-        matrixMode={matrixMode}
-        onToggleMatrix={handleToggleMatrix}
+        theme={theme}
+        onSelectTheme={handleSelectTheme}
       />
 
       {/* Main Workspace Layout */}
@@ -183,6 +186,7 @@ export const App: React.FC = () => {
             activeExercise={activeExercise}
             completedIds={user.completed_exercises}
             onSelectExercise={(ex) => setActiveExercise(ex)}
+            theme={theme}
           />
         </aside>
 
@@ -197,6 +201,7 @@ export const App: React.FC = () => {
               onPrev={handlePrev}
               hasPrev={hasPrev}
               hasNext={hasNext}
+              theme={theme}
             />
           </div>
 
@@ -208,6 +213,7 @@ export const App: React.FC = () => {
               onCommandSuccess={handleCommandSuccess}
               crtMode={crtMode}
               onToggleCrt={handleToggleCrt}
+              theme={theme}
             />
           </div>
         </section>
