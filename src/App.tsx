@@ -246,12 +246,14 @@ export const App: React.FC = () => {
         isOpen={isBadgesOpen}
         onClose={() => setIsBadgesOpen(false)}
         user={user}
+        theme={theme}
       />
 
       <TeacherPanel
         isOpen={isTeacherPanelOpen}
         onClose={() => setIsTeacherPanelOpen(false)}
         onExercisesUpdated={refreshExercises}
+        theme={theme}
       />
 
       <AuthModal
@@ -267,6 +269,7 @@ export const App: React.FC = () => {
           newLevel={levelUpData.newLevel}
           newXp={levelUpData.newXp}
           onClose={() => setLevelUpData(null)}
+          theme={theme}
         />
       )}
     </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StudentProgressRow, Exercise, OperatingSystem, UserRole, CourseGroup } from '../types';
+import { StudentProgressRow, Exercise, OperatingSystem, UserRole, CourseGroup, ThemeMode } from '../types';
 import {
   fetchClassroomProgress,
   createStudentAccount,
@@ -37,12 +37,14 @@ interface TeacherPanelProps {
   isOpen: boolean;
   onClose: () => void;
   onExercisesUpdated?: () => void;
+  theme?: ThemeMode;
 }
 
 export const TeacherPanel: React.FC<TeacherPanelProps> = ({
   isOpen,
   onClose,
   onExercisesUpdated,
+  theme = 'matrix',
 }) => {
   const [activeTab, setActiveTab] = useState<'monitoring' | 'management' | 'exercises'>('monitoring');
   const [students, setStudents] = useState<StudentProgressRow[]>([]);
@@ -79,6 +81,9 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
   const [exOutput, setExOutput] = useState('');
   const [exTargetCourse, setExTargetCourse] = useState<CourseGroup | 'TODOS'>('TODOS');
   const [exSuccessMsg, setExSuccessMsg] = useState<string | null>(null);
+
+  const isLight = theme === 'light';
+  const isMatrix = theme === 'matrix';
 
   const loadData = () => {
     fetchClassroomProgress().then(setStudents);
@@ -152,27 +157,32 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
 
   const handleBulkImport = async () => {
     if (!bulkText.trim()) return;
+
     sounds.playKey();
     setIsSubmitting(true);
     setBulkMsg(null);
 
     const lines = bulkText.split('\n');
-    const res = await bulkCreateStudents(lines, bulkCourse, 'student');
+    const { createdCount, errors } = await bulkCreateStudents(lines, bulkCourse);
     setIsSubmitting(false);
 
-    if (res.createdCount > 0) {
+    if (createdCount > 0) {
       sounds.playSuccess();
-      setBulkMsg(`✔ Se han creado ${res.createdCount} cuentas correctamente para ${bulkCourse === '1DAM' ? '1º DAM' : '2º SMR'}.`);
+      let msg = `✔ Se han registrado ${createdCount} usuarios correctamente en ${bulkCourse === '1DAM' ? '1º DAM' : '2º SMR'}.`;
+      if (errors.length > 0) {
+        msg += ` (Ocurrieron ${errors.length} avisos: ${errors.slice(0, 2).join('; ')})`;
+      }
+      setBulkMsg(msg);
       setBulkText('');
       loadData();
     } else {
       sounds.playError();
-      setBulkMsg(`⚠️ Errores en la importación: ${res.errors.join(', ')}`);
+      setBulkMsg(`❌ No se pudieron registrar usuarios: ${errors.join(', ')}`);
     }
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (confirm(`¿Estás seguro de eliminar el usuario "${name}"?`)) {
+    if (confirm(`¿Estás seguro de que deseas eliminar a "${name}"? Esta acción borrará sus puntos e intentos.`)) {
       sounds.playKey();
       await deleteStudent(id);
       loadData();
@@ -256,16 +266,57 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
-      <div className="bg-gradient-to-b from-gray-900 via-[#0b101d] to-gray-950 border-2 border-indigo-500/40 rounded-3xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl shadow-indigo-500/10 overflow-hidden">
+      <div
+        className={`border-2 rounded-3xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden relative transition-colors ${
+          isLight
+            ? 'bg-white border-slate-300 text-slate-800 shadow-slate-400'
+            : isMatrix
+            ? 'bg-gradient-to-b from-[#020b04] via-[#041307] to-[#020b04] border-[#00ff66]/40 shadow-[#00ff66]/20 text-[#d4ffe0]'
+            : 'bg-gradient-to-b from-gray-900 via-[#0b101d] to-gray-950 border-indigo-500/40 shadow-indigo-500/10 text-gray-100'
+        }`}
+      >
+        {/* Top Accent Line */}
+        <div
+          className={`h-1.5 w-full ${
+            isLight
+              ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500'
+              : isMatrix
+              ? 'bg-gradient-to-r from-[#00ff66] via-emerald-400 to-[#00ff66]'
+              : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500'
+          }`}
+        />
+
         {/* Header Bar */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-gray-950/70">
+        <div
+          className={`flex items-center justify-between px-6 py-4 border-b ${
+            isLight
+              ? 'bg-slate-50 border-slate-200'
+              : isMatrix
+              ? 'bg-[#031508] border-[#00ff66]/30'
+              : 'bg-gray-950/70 border-gray-800'
+          }`}
+        >
           <div className="flex items-center space-x-3">
-            <div className="w-11 h-11 rounded-2xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
+            <div
+              className={`w-11 h-11 rounded-2xl border flex items-center justify-center ${
+                isLight
+                  ? 'bg-indigo-100 border-indigo-200 text-indigo-700'
+                  : isMatrix
+                  ? 'bg-[#003311] border-[#00ff66]/60 text-[#00ff66]'
+                  : 'bg-indigo-500/20 border-indigo-500/40 text-indigo-400'
+              }`}
+            >
               <GraduationCap className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h2 className="text-lg font-black text-white font-mono">PANEL DE CONTROL DOCENTE</h2>
+                <h2
+                  className={`text-lg font-black font-mono ${
+                    isLight ? 'text-slate-900' : isMatrix ? 'text-[#00ff66]' : 'text-white'
+                  }`}
+                >
+                  PANEL DE CONTROL DOCENTE
+                </h2>
                 <div className="flex space-x-1">
                   <span className="text-[10px] bg-blue-950 text-blue-300 px-2 py-0.5 rounded-full border border-blue-800 font-mono font-bold">
                     1º DAM
@@ -275,7 +326,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                   </span>
                 </div>
               </div>
-              <p className="text-xs text-gray-400">
+              <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
                 Gestión multi-curso, altas de alumnos/docentes y control de progreso
               </p>
             </div>
@@ -284,7 +335,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
           <div className="flex items-center space-x-2">
             <button
               onClick={exportCSV}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white shadow-sm transition"
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition"
               title="Descargar lista de alumnos y contraseñas en CSV"
             >
               <Download className="w-3.5 h-3.5" />
@@ -296,7 +347,11 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                 sounds.playKey();
                 onClose();
               }}
-              className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-gray-800 transition"
+              className={`p-2 rounded-xl transition ${
+                isLight
+                  ? 'text-slate-400 hover:text-slate-900 hover:bg-slate-200'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              }`}
             >
               <X className="w-5 h-5" />
             </button>
@@ -304,7 +359,15 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center px-6 pt-3 border-b border-gray-800 bg-gray-950/40 gap-4 flex-wrap">
+        <div
+          className={`flex items-center px-6 pt-3 border-b gap-4 flex-wrap ${
+            isLight
+              ? 'bg-slate-100/70 border-slate-200'
+              : isMatrix
+              ? 'bg-[#020e05] border-[#00ff66]/20'
+              : 'bg-gray-950/40 border-gray-800'
+          }`}
+        >
           <button
             onClick={() => {
               sounds.playKey();
@@ -312,7 +375,15 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
             }}
             className={`pb-3 text-xs font-bold transition flex items-center space-x-2 border-b-2 ${
               activeTab === 'monitoring'
-                ? 'border-indigo-400 text-indigo-300'
+                ? isLight
+                  ? 'border-indigo-600 text-indigo-700'
+                  : isMatrix
+                  ? 'border-[#00ff66] text-[#00ff66]'
+                  : 'border-indigo-400 text-indigo-300'
+                : isLight
+                ? 'border-transparent text-slate-500 hover:text-slate-900'
+                : isMatrix
+                ? 'border-transparent text-gray-400 hover:text-[#00ff66]'
                 : 'border-transparent text-gray-400 hover:text-gray-200'
             }`}
           >
@@ -327,7 +398,15 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
             }}
             className={`pb-3 text-xs font-bold transition flex items-center space-x-2 border-b-2 ${
               activeTab === 'management'
-                ? 'border-cyan-400 text-cyan-300'
+                ? isLight
+                  ? 'border-cyan-600 text-cyan-700'
+                  : isMatrix
+                  ? 'border-[#00ff66] text-[#00ff66]'
+                  : 'border-cyan-400 text-cyan-300'
+                : isLight
+                ? 'border-transparent text-slate-500 hover:text-slate-900'
+                : isMatrix
+                ? 'border-transparent text-gray-400 hover:text-[#00ff66]'
                 : 'border-transparent text-gray-400 hover:text-gray-200'
             }`}
           >
@@ -342,48 +421,98 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
             }}
             className={`pb-3 text-xs font-bold transition flex items-center space-x-2 border-b-2 ${
               activeTab === 'exercises'
-                ? 'border-amber-400 text-amber-300'
+                ? isLight
+                  ? 'border-amber-600 text-amber-700'
+                  : isMatrix
+                  ? 'border-[#00ff66] text-[#00ff66]'
+                  : 'border-amber-400 text-amber-300'
+                : isLight
+                ? 'border-transparent text-slate-500 hover:text-slate-900'
+                : isMatrix
+                ? 'border-transparent text-gray-400 hover:text-[#00ff66]'
                 : 'border-transparent text-gray-400 hover:text-gray-200'
             }`}
           >
-            <PlusCircle className="w-4 h-4 text-amber-400" />
+            <PlusCircle className="w-4 h-4" />
             <span>✏️ Creador de Retos (Añadir Ejercicio)</span>
           </button>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-gray-700">
+        {/* Content Body */}
+        <div
+          className={`flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin ${
+            isLight
+              ? 'scrollbar-thumb-slate-300'
+              : isMatrix
+              ? 'scrollbar-thumb-emerald-950'
+              : 'scrollbar-thumb-gray-700'
+          }`}
+        >
           {activeTab === 'monitoring' && (
             <>
               {/* KPI Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-gray-950/80 border border-gray-800 p-4 rounded-2xl flex items-center space-x-3">
+                <div
+                  className={`border p-4 rounded-2xl flex items-center space-x-3 ${
+                    isLight
+                      ? 'bg-slate-50 border-slate-200 text-slate-800'
+                      : isMatrix
+                      ? 'bg-[#031508]/80 border-[#00ff66]/30 text-[#d4ffe0]'
+                      : 'bg-gray-950/80 border-gray-800 text-gray-100'
+                  }`}
+                >
                   <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
                     <Users className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-xs text-gray-400 uppercase font-mono">Alumnos Matriculados</div>
-                    <div className="text-2xl font-black text-white font-mono">{studentOnlyList.length}</div>
+                    <div className={`text-xs uppercase font-mono ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
+                      Alumnos Matriculados
+                    </div>
+                    <div className={`text-2xl font-black font-mono ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                      {studentOnlyList.length}
+                    </div>
                   </div>
                 </div>
 
-                <div className="bg-gray-950/80 border border-gray-800 p-4 rounded-2xl flex items-center space-x-3">
+                <div
+                  className={`border p-4 rounded-2xl flex items-center space-x-3 ${
+                    isLight
+                      ? 'bg-slate-50 border-slate-200 text-slate-800'
+                      : isMatrix
+                      ? 'bg-[#031508]/80 border-[#00ff66]/30 text-[#d4ffe0]'
+                      : 'bg-gray-950/80 border-gray-800 text-gray-100'
+                  }`}
+                >
                   <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-xs text-gray-400 uppercase font-mono">Media XP Global</div>
+                    <div className={`text-xs uppercase font-mono ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
+                      Media XP Global
+                    </div>
                     <div className="text-2xl font-black text-amber-400 font-mono">{avgXP} XP</div>
                   </div>
                 </div>
 
-                <div className="bg-gray-950/80 border border-gray-800 p-4 rounded-2xl flex items-center space-x-3">
+                <div
+                  className={`border p-4 rounded-2xl flex items-center space-x-3 ${
+                    isLight
+                      ? 'bg-slate-50 border-slate-200 text-slate-800'
+                      : isMatrix
+                      ? 'bg-[#031508]/80 border-[#00ff66]/30 text-[#d4ffe0]'
+                      : 'bg-gray-950/80 border-gray-800 text-gray-100'
+                  }`}
+                >
                   <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
                     <CheckCircle className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-xs text-gray-400 uppercase font-mono">Avance Promedio</div>
-                    <div className="text-2xl font-black text-emerald-400 font-mono">{avgCompletion}%</div>
+                    <div className={`text-xs uppercase font-mono ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
+                      Avance Promedio
+                    </div>
+                    <div className={`text-2xl font-black font-mono ${isLight ? 'text-emerald-700' : isMatrix ? 'text-[#00ff66]' : 'text-emerald-400'}`}>
+                      {avgCompletion}%
+                    </div>
                   </div>
                 </div>
               </div>
@@ -391,26 +520,46 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
               {/* Filter and Search Bar */}
               <div className="flex flex-wrap items-center gap-3">
                 <div className="relative flex-1 min-w-[200px]">
-                  <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Search className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 ${isLight ? 'text-slate-400' : 'text-gray-500'}`} />
                   <input
                     type="text"
-                    placeholder="Buscar por nombre o correo..."
+                    placeholder="Buscar alumno por nombre o correo..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-gray-950/80 border border-gray-800 rounded-xl pl-9 pr-4 py-2 text-xs text-gray-200 placeholder-gray-500 outline-none focus:border-indigo-500"
+                    className={`w-full border rounded-xl pl-9 pr-4 py-2 text-xs outline-none ${
+                      isLight
+                        ? 'bg-white border-slate-300 text-slate-900 placeholder-slate-400 focus:border-indigo-600'
+                        : isMatrix
+                        ? 'bg-[#011406] border-[#00ff66]/40 text-[#00ff66] placeholder-emerald-800 focus:border-[#00ff66]'
+                        : 'bg-gray-950/80 border-gray-800 text-gray-200 placeholder-gray-500 focus:border-indigo-500'
+                    }`}
                   />
                 </div>
 
                 {/* Course Filter */}
-                <div className="flex items-center space-x-1 bg-gray-950/80 border border-gray-800 p-1 rounded-xl text-xs font-semibold">
-                  <span className="text-gray-500 px-2 flex items-center gap-1">
+                <div
+                  className={`flex items-center space-x-1 border p-1 rounded-xl text-xs font-semibold ${
+                    isLight
+                      ? 'bg-slate-100 border-slate-200'
+                      : isMatrix
+                      ? 'bg-[#020e05] border-[#00ff66]/30'
+                      : 'bg-gray-950/80 border-gray-800'
+                  }`}
+                >
+                  <span className={`px-2 flex items-center gap-1 ${isLight ? 'text-slate-500' : 'text-gray-500'}`}>
                     <Filter className="w-3 h-3" /> Grupo:
                   </span>
                   <button
                     onClick={() => setCourseFilter('TODOS')}
                     className={`px-2.5 py-1 rounded-lg transition ${
                       courseFilter === 'TODOS'
-                        ? 'bg-indigo-600 text-white font-bold'
+                        ? isLight
+                          ? 'bg-slate-900 text-white font-bold'
+                          : isMatrix
+                          ? 'bg-[#00ff66] text-black font-black'
+                          : 'bg-indigo-600 text-white font-bold'
+                        : isLight
+                        ? 'text-slate-600 hover:bg-slate-200'
                         : 'text-gray-400 hover:text-white'
                     }`}
                   >
@@ -420,7 +569,9 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                     onClick={() => setCourseFilter('1DAM')}
                     className={`px-2.5 py-1 rounded-lg transition ${
                       courseFilter === '1DAM'
-                        ? 'bg-blue-600 text-white font-bold'
+                        ? 'bg-blue-600 text-white font-bold shadow'
+                        : isLight
+                        ? 'text-slate-600 hover:bg-slate-200'
                         : 'text-gray-400 hover:text-white'
                     }`}
                   >
@@ -430,7 +581,9 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                     onClick={() => setCourseFilter('2SMR')}
                     className={`px-2.5 py-1 rounded-lg transition ${
                       courseFilter === '2SMR'
-                        ? 'bg-purple-600 text-white font-bold'
+                        ? 'bg-purple-600 text-white font-bold shadow'
+                        : isLight
+                        ? 'text-slate-600 hover:bg-slate-200'
                         : 'text-gray-400 hover:text-white'
                     }`}
                   >
@@ -440,7 +593,9 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                     onClick={() => setCourseFilter('TEACHERS')}
                     className={`px-2.5 py-1 rounded-lg transition ${
                       courseFilter === 'TEACHERS'
-                        ? 'bg-amber-600 text-white font-bold'
+                        ? 'bg-amber-600 text-white font-bold shadow'
+                        : isLight
+                        ? 'text-slate-600 hover:bg-slate-200'
                         : 'text-gray-400 hover:text-white'
                     }`}
                   >
@@ -450,9 +605,25 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
               </div>
 
               {/* Students Table */}
-              <div className="bg-gray-950/60 border border-gray-800 rounded-2xl overflow-hidden shadow-inner">
+              <div
+                className={`border rounded-2xl overflow-hidden shadow-inner ${
+                  isLight
+                    ? 'bg-white border-slate-200'
+                    : isMatrix
+                    ? 'bg-[#031508] border-[#00ff66]/30'
+                    : 'bg-gray-950/60 border-gray-800'
+                }`}
+              >
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-gray-900/90 text-gray-400 uppercase font-mono text-[11px] border-b border-gray-800">
+                  <thead
+                    className={`border-b text-[11px] font-mono font-bold uppercase ${
+                      isLight
+                        ? 'bg-slate-100 border-slate-200 text-slate-600'
+                        : isMatrix
+                        ? 'bg-[#020b04] border-[#00ff66]/30 text-[#00ff66]'
+                        : 'bg-gray-900/90 border-gray-800 text-gray-400'
+                    }`}
+                  >
                     <tr>
                       <th className="px-4 py-3">Usuario</th>
                       <th className="px-4 py-3 text-center">Grupo / Rol</th>
@@ -463,84 +634,117 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                       <th className="px-4 py-3 text-right">Acción</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-800/80 text-gray-300">
-                    {filteredStudents.map((st) => {
-                      const percent = Math.round((st.completedCount / st.totalExercises) * 100);
+                  <tbody
+                    className={`divide-y ${
+                      isLight
+                        ? 'divide-slate-200 text-slate-800'
+                        : isMatrix
+                        ? 'divide-[#00ff66]/15 text-[#d4ffe0]'
+                        : 'divide-gray-800/80 text-gray-300'
+                    }`}
+                  >
+                    {filteredStudents.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-4 py-8 text-center text-xs text-gray-500 italic">
+                          No se encontraron usuarios registrados en esta vista.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredStudents.map((st) => {
+                        const percent = Math.round((st.completedCount / st.totalExercises) * 100);
 
-                      return (
-                        <tr key={st.studentId} className="hover:bg-gray-800/40 transition">
-                          <td className="px-4 py-3">
-                            <div className="font-bold text-white flex items-center gap-1.5">
-                              {st.studentName}
-                              {st.role === 'teacher' && (
-                                <span className="text-[9px] bg-amber-950 text-amber-300 border border-amber-800 px-1.5 py-0.2 rounded font-mono font-bold">
-                                  DOCENTE
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[11px] text-gray-500 font-mono">{st.studentEmail}</div>
-                          </td>
-
-                          <td className="px-4 py-3 text-center font-mono">
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                                st.role === 'teacher'
-                                  ? 'bg-amber-950 text-amber-300 border-amber-800'
-                                  : st.course === '1DAM'
-                                  ? 'bg-blue-950 text-blue-300 border-blue-800'
-                                  : 'bg-purple-950 text-purple-300 border-purple-800'
-                              }`}
-                            >
-                              {st.role === 'teacher' ? 'Docente' : st.course === '1DAM' ? '1º DAM' : '2º SMR'}
-                            </span>
-                          </td>
-
-                          <td className="px-4 py-3 text-center font-mono">
-                            <span className="px-2 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800 font-bold">
-                              Niv. {st.level}
-                            </span>
-                          </td>
-
-                          <td className="px-4 py-3 text-right font-mono font-black text-amber-400">
-                            {st.xp} XP
-                          </td>
-
-                          <td className="px-4 py-3 text-center font-mono">
-                            <span className="inline-flex items-center gap-1 text-orange-400 font-bold">
-                              <Flame className="w-3.5 h-3.5 fill-orange-500" /> {st.streak}
-                            </span>
-                          </td>
-
-                          <td className="px-4 py-3">
-                            <div className="w-32 space-y-1">
-                              <div className="flex justify-between text-[10px] text-gray-400 font-mono">
-                                <span>{st.completedCount}/{st.totalExercises}</span>
-                                <span>{percent}%</span>
+                        return (
+                          <tr
+                            key={st.studentId}
+                            className={`transition ${
+                              isLight
+                                ? 'hover:bg-slate-50'
+                                : isMatrix
+                                ? 'hover:bg-[#002b0f]/50'
+                                : 'hover:bg-gray-800/40'
+                            }`}
+                          >
+                            <td className="px-4 py-3">
+                              <div className={`font-bold flex items-center gap-1.5 ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                                {st.studentName}
+                                {st.role === 'teacher' && (
+                                  <span className="text-[9px] bg-amber-950 text-amber-300 border border-amber-800 px-1.5 py-0.2 rounded font-mono font-bold">
+                                    DOCENTE
+                                  </span>
+                                )}
                               </div>
-                              <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-emerald-500 rounded-full"
-                                  style={{ width: `${percent}%` }}
-                                />
+                              <div className={`text-[11px] font-mono ${isLight ? 'text-slate-500' : 'text-gray-500'}`}>
+                                {st.studentEmail}
                               </div>
-                            </div>
-                          </td>
+                            </td>
 
-                          <td className="px-4 py-3 text-right">
-                            <button
-                              onClick={() => {
-                                sounds.playKey();
-                                setSelectedStudent(st);
-                              }}
-                              className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg text-xs font-medium inline-flex items-center gap-1 transition"
-                            >
-                              <span>Detalle</span>
-                              <ChevronRight className="w-3.5 h-3.5" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                            <td className="px-4 py-3 text-center font-mono">
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                  st.role === 'teacher'
+                                    ? 'bg-amber-950 text-amber-300 border-amber-800'
+                                    : st.course === '1DAM'
+                                    ? 'bg-blue-950 text-blue-300 border-blue-800'
+                                    : 'bg-purple-950 text-purple-300 border-purple-800'
+                                }`}
+                              >
+                                {st.role === 'teacher' ? 'Docente' : st.course === '1DAM' ? '1º DAM' : '2º SMR'}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-3 text-center font-mono">
+                              <span className="px-2 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800 font-bold">
+                                Niv. {st.level}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-3 text-right font-mono font-black text-amber-400">
+                              {st.xp} XP
+                            </td>
+
+                            <td className="px-4 py-3 text-center font-mono">
+                              <span className="inline-flex items-center gap-1 text-orange-400 font-bold">
+                                <Flame className="w-3.5 h-3.5 fill-orange-500" /> {st.streak}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-3">
+                              <div className="w-32 space-y-1">
+                                <div className={`flex justify-between text-[10px] font-mono ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
+                                  <span>{st.completedCount}/{st.totalExercises}</span>
+                                  <span>{percent}%</span>
+                                </div>
+                                <div className={`h-1.5 rounded-full overflow-hidden ${isLight ? 'bg-slate-200' : 'bg-gray-800'}`}>
+                                  <div
+                                    className={`h-full rounded-full ${isLight ? 'bg-emerald-500' : isMatrix ? 'bg-[#00ff66]' : 'bg-emerald-500'}`}
+                                    style={{ width: `${percent}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                onClick={() => {
+                                  sounds.playKey();
+                                  setSelectedStudent(st);
+                                }}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-medium inline-flex items-center gap-1 transition ${
+                                  isLight
+                                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                    : isMatrix
+                                    ? 'bg-[#002b0f] hover:bg-[#004017] text-[#00ff66] border border-[#00ff66]/40'
+                                    : 'bg-gray-800 hover:bg-gray-700 text-gray-200'
+                                }`}
+                              >
+                                <span>Detalle</span>
+                                <ChevronRight className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -550,13 +754,23 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
           {activeTab === 'management' && (
             <div className="space-y-6">
               {/* Form 1: Crear Usuario Individual (Alumno o Docente) */}
-              <div className="bg-gray-950/80 border border-gray-800 p-5 rounded-2xl space-y-4">
+              <div
+                className={`border p-5 rounded-2xl space-y-4 ${
+                  isLight
+                    ? 'bg-slate-50 border-slate-200 text-slate-800'
+                    : isMatrix
+                    ? 'bg-[#031508] border-[#00ff66]/30 text-[#d4ffe0]'
+                    : 'bg-gray-950/80 border-gray-800 text-gray-100'
+                }`}
+              >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2 text-sm font-bold text-white">
+                  <div className={`flex items-center space-x-2 text-sm font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
                     <UserPlus className="w-4 h-4 text-cyan-400" />
                     <span>Dar de Alta Nuevo Usuario (Alumno o Docente)</span>
                   </div>
-                  <span className="text-[11px] text-gray-400 font-mono">Gestión integrada sin Supabase</span>
+                  <span className={`text-[11px] font-mono ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
+                    Gestión multi-curso
+                  </span>
                 </div>
 
                 {formMsg && (
@@ -576,11 +790,19 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     {/* Rol Selector */}
                     <div>
-                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Tipo de Usuario (Rol)</label>
+                      <label className={`text-[11px] font-medium block mb-1 ${isLight ? 'text-slate-700' : 'text-gray-400'}`}>
+                        Tipo de Usuario (Rol)
+                      </label>
                       <select
                         value={newRole}
                         onChange={(e) => setNewRole(e.target.value as UserRole)}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                        className={`w-full border rounded-xl px-3 py-2 text-xs outline-none ${
+                          isLight
+                            ? 'bg-white border-slate-300 text-slate-900'
+                            : isMatrix
+                            ? 'bg-[#011406] border-[#00ff66]/40 text-[#00ff66]'
+                            : 'bg-gray-900 border-gray-700 text-white'
+                        }`}
                       >
                         <option value="student">👨‍💻 Alumno</option>
                         <option value="teacher">👨‍🏫 Docente (Profesor)</option>
@@ -589,53 +811,83 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
 
                     {/* Curso / Grupo Selector */}
                     <div>
-                      <label className="text-[11px] text-gray-400 font-medium block mb-1">
+                      <label className={`text-[11px] font-medium block mb-1 ${isLight ? 'text-slate-700' : 'text-gray-400'}`}>
                         Grupo {newRole === 'teacher' ? '(Departamento)' : '(Curso)'}
                       </label>
                       <select
                         value={newCourse}
                         onChange={(e) => setNewCourse(e.target.value as CourseGroup)}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none font-bold"
+                        className={`w-full border rounded-xl px-3 py-2 text-xs outline-none font-bold ${
+                          isLight
+                            ? 'bg-white border-slate-300 text-slate-900'
+                            : isMatrix
+                            ? 'bg-[#011406] border-[#00ff66]/40 text-[#00ff66]'
+                            : 'bg-gray-900 border-gray-700 text-white'
+                        }`}
                       >
-                        <option value="1DAM">1º DAM (Desarrollo Multiplataforma)</option>
-                        <option value="2SMR">2º SMR (Sistemas Microinformáticos)</option>
+                        <option value="1DAM">1º DAM (Multiplataforma)</option>
+                        <option value="2SMR">2º SMR (Microinformáticos)</option>
                       </select>
                     </div>
 
                     {/* Nombre */}
                     <div>
-                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Nombre y Apellidos</label>
+                      <label className={`text-[11px] font-medium block mb-1 ${isLight ? 'text-slate-700' : 'text-gray-400'}`}>
+                        Nombre y Apellidos
+                      </label>
                       <input
                         type="text"
                         placeholder="Ej: Marcos Sánchez"
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-cyan-400"
+                        className={`w-full border rounded-xl px-3 py-2 text-xs outline-none ${
+                          isLight
+                            ? 'bg-white border-slate-300 text-slate-900 focus:border-indigo-600'
+                            : isMatrix
+                            ? 'bg-[#011406] border-[#00ff66]/40 text-[#00ff66] focus:border-[#00ff66]'
+                            : 'bg-gray-900 border-gray-700 text-white focus:border-cyan-400'
+                        }`}
                       />
                     </div>
 
                     {/* Email */}
                     <div>
-                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Correo Electrónico</label>
+                      <label className={`text-[11px] font-medium block mb-1 ${isLight ? 'text-slate-700' : 'text-gray-400'}`}>
+                        Correo Electrónico
+                      </label>
                       <input
                         type="email"
                         placeholder="usuario@iesbenigaslo.es"
                         value={newEmail}
                         onChange={(e) => setNewEmail(e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-cyan-400 font-mono"
+                        className={`w-full border rounded-xl px-3 py-2 text-xs outline-none font-mono ${
+                          isLight
+                            ? 'bg-white border-slate-300 text-slate-900 focus:border-indigo-600'
+                            : isMatrix
+                            ? 'bg-[#011406] border-[#00ff66]/40 text-[#00ff66] focus:border-[#00ff66]'
+                            : 'bg-gray-900 border-gray-700 text-white focus:border-cyan-400'
+                        }`}
                       />
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <div className="flex-1">
-                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Contraseña Inicial</label>
+                      <label className={`text-[11px] font-medium block mb-1 ${isLight ? 'text-slate-700' : 'text-gray-400'}`}>
+                        Contraseña Inicial
+                      </label>
                       <input
                         type="text"
                         placeholder="benigaslo2026"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-cyan-400 font-mono"
+                        className={`w-full border rounded-xl px-3 py-2 text-xs outline-none font-mono ${
+                          isLight
+                            ? 'bg-white border-slate-300 text-slate-900 focus:border-indigo-600'
+                            : isMatrix
+                            ? 'bg-[#011406] border-[#00ff66]/40 text-[#00ff66] focus:border-[#00ff66]'
+                            : 'bg-gray-900 border-gray-700 text-white focus:border-cyan-400'
+                        }`}
                       />
                     </div>
 
@@ -665,19 +917,31 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
               </div>
 
               {/* Form 2: Alta Masiva por Curso */}
-              <div className="bg-gray-950/80 border border-gray-800 p-5 rounded-2xl space-y-3">
+              <div
+                className={`border p-5 rounded-2xl space-y-3 ${
+                  isLight
+                    ? 'bg-slate-50 border-slate-200 text-slate-800'
+                    : isMatrix
+                    ? 'bg-[#031508] border-[#00ff66]/30 text-[#d4ffe0]'
+                    : 'bg-gray-950/80 border-gray-800 text-gray-100'
+                }`}
+              >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2 text-sm font-bold text-white">
-                    <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                  <div className={`flex items-center space-x-2 text-sm font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
                     <span>Alta Masiva de Alumnos por Grupo</span>
                   </div>
 
                   <div className="flex items-center space-x-2 text-xs">
-                    <span className="text-gray-400">Asignar a:</span>
+                    <span className={isLight ? 'text-slate-500' : 'text-gray-400'}>Asignar a:</span>
                     <select
                       value={bulkCourse}
                       onChange={(e) => setBulkCourse(e.target.value as CourseGroup)}
-                      className="bg-gray-900 border border-gray-700 text-white rounded-lg px-2 py-1 text-xs font-bold"
+                      className={`border rounded-lg px-2 py-1 text-xs font-bold ${
+                        isLight
+                          ? 'bg-white border-slate-300 text-slate-900'
+                          : 'bg-gray-900 border-gray-700 text-white'
+                      }`}
                     >
                       <option value="1DAM">1º DAM</option>
                       <option value="2SMR">2º SMR</option>
@@ -685,8 +949,8 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                   </div>
                 </div>
 
-                <p className="text-xs text-gray-400">
-                  Pega varias líneas con el formato: <code className="text-cyan-300">Nombre, Correo, Contraseña</code> (una por línea).
+                <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
+                  Pega varias líneas con el formato: <code className="text-cyan-400 font-mono">Nombre, Correo, Contraseña</code> (una por línea).
                 </p>
 
                 {bulkMsg && (
@@ -700,66 +964,107 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                   placeholder={`Laura Pérez, lperez@iesbenigaslo.es, dam2026\nMarc Ramos, mramos@iesbenigaslo.es, dam2026`}
                   value={bulkText}
                   onChange={(e) => setBulkText(e.target.value)}
-                  className="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-xs text-white font-mono outline-none focus:border-emerald-500"
+                  className={`w-full border rounded-xl p-3 text-xs font-mono outline-none ${
+                    isLight
+                      ? 'bg-white border-slate-300 text-slate-900 focus:border-indigo-600'
+                      : isMatrix
+                      ? 'bg-[#011406] border-[#00ff66]/40 text-[#00ff66] focus:border-[#00ff66]'
+                      : 'bg-gray-900 border-gray-700 text-white focus:border-emerald-500'
+                  }`}
                 />
 
                 <button
                   type="button"
                   onClick={handleBulkImport}
                   disabled={isSubmitting || !bulkText.trim()}
-                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition"
                 >
                   Importar lista para {bulkCourse === '1DAM' ? '1º DAM' : '2º SMR'}
                 </button>
               </div>
 
               {/* List of existing accounts */}
-              <div className="bg-gray-950/80 border border-gray-800 rounded-2xl overflow-hidden">
-                <div className="p-4 bg-gray-900/90 border-b border-gray-800 flex items-center justify-between">
-                  <span className="text-xs font-bold text-white uppercase font-mono">
+              <div
+                className={`border rounded-2xl overflow-hidden ${
+                  isLight
+                    ? 'bg-white border-slate-200'
+                    : isMatrix
+                    ? 'bg-[#031508] border-[#00ff66]/30'
+                    : 'bg-gray-950/80 border-gray-800'
+                }`}
+              >
+                <div
+                  className={`p-4 border-b flex items-center justify-between ${
+                    isLight ? 'bg-slate-100 border-slate-200' : 'bg-gray-900/90 border-gray-800'
+                  }`}
+                >
+                  <span className={`text-xs font-bold uppercase font-mono ${isLight ? 'text-slate-900' : 'text-white'}`}>
                     Cuentas Registradas en la Plataforma ({students.length})
                   </span>
-                  <span className="text-[11px] text-gray-400">
+                  <span className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
                     Contraseñas iniciales accesibles por el profesor
                   </span>
                 </div>
 
-                <div className="divide-y divide-gray-800/80 text-xs max-h-64 overflow-y-auto">
-                  {students.map((st) => (
-                    <div key={st.studentId} className="px-4 py-3 flex items-center justify-between hover:bg-gray-900/40">
-                      <div>
-                        <div className="font-bold text-white flex items-center gap-2">
-                          <span>{st.studentName}</span>
-                          <span
-                            className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold ${
-                              st.role === 'teacher'
-                                ? 'bg-amber-950 text-amber-300 border border-amber-800'
-                                : st.course === '1DAM'
-                                ? 'bg-blue-950 text-blue-300 border border-blue-800'
-                                : 'bg-purple-950 text-purple-300 border border-purple-800'
+                <div
+                  className={`divide-y text-xs max-h-64 overflow-y-auto ${
+                    isLight ? 'divide-slate-200' : isMatrix ? 'divide-[#00ff66]/15' : 'divide-gray-800/80'
+                  }`}
+                >
+                  {students.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-gray-500 italic">
+                      No hay alumnos registrados todavía. Da de alta al primer usuario en el formulario superior.
+                    </div>
+                  ) : (
+                    students.map((st) => (
+                      <div
+                        key={st.studentId}
+                        className={`px-4 py-3 flex items-center justify-between transition ${
+                          isLight ? 'hover:bg-slate-50' : 'hover:bg-gray-900/40'
+                        }`}
+                      >
+                        <div>
+                          <div className={`font-bold flex items-center gap-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                            <span>{st.studentName}</span>
+                            <span
+                              className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold ${
+                                st.role === 'teacher'
+                                  ? 'bg-amber-950 text-amber-300 border border-amber-800'
+                                  : st.course === '1DAM'
+                                  ? 'bg-blue-950 text-blue-300 border border-blue-800'
+                                  : 'bg-purple-950 text-purple-300 border border-purple-800'
+                              }`}
+                            >
+                              {st.role === 'teacher' ? 'DOCENTE' : st.course}
+                            </span>
+                          </div>
+                          <div className={`text-[11px] font-mono ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
+                            {st.studentEmail}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-4">
+                          <div
+                            className={`px-3 py-1 rounded-lg border font-mono text-[11px] ${
+                              isLight
+                                ? 'bg-slate-100 border-slate-200 text-slate-800'
+                                : 'bg-gray-900 border-gray-800'
                             }`}
                           >
-                            {st.role === 'teacher' ? 'DOCENTE' : st.course}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-gray-400 font-mono">{st.studentEmail}</div>
-                      </div>
+                            Pass: <code className="text-amber-400 font-bold">{st.initialPassword || 'Asignada'}</code>
+                          </div>
 
-                      <div className="flex items-center space-x-4">
-                        <div className="bg-gray-900 px-3 py-1 rounded-lg border border-gray-800 font-mono text-[11px]">
-                          Pass: <code className="text-amber-300 font-bold">{st.initialPassword || 'Asignada'}</code>
+                          <button
+                            onClick={() => handleDelete(st.studentId, st.studentName)}
+                            className="p-1.5 text-gray-400 hover:text-rose-500 hover:bg-rose-950/40 rounded-lg transition"
+                            title="Eliminar usuario"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
-
-                        <button
-                          onClick={() => handleDelete(st.studentId, st.studentName)}
-                          className="p-1.5 text-gray-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition"
-                          title="Eliminar usuario"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -767,13 +1072,21 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
 
           {activeTab === 'exercises' && (
             <div className="space-y-6">
-              <div className="bg-gray-950/80 border-2 border-amber-500/40 p-5 rounded-2xl space-y-4">
-                <div className="flex items-center space-x-2 text-sm font-bold text-amber-300">
-                  <PlusCircle className="w-5 h-5 text-amber-400" />
+              <div
+                className={`border-2 p-5 rounded-2xl space-y-4 ${
+                  isLight
+                    ? 'bg-slate-50 border-amber-300 text-slate-800'
+                    : isMatrix
+                    ? 'bg-[#031508] border-[#00ff66]/50 text-[#d4ffe0]'
+                    : 'bg-gray-950/80 border-amber-500/40 text-gray-100'
+                }`}
+              >
+                <div className="flex items-center space-x-2 text-sm font-bold text-amber-400">
+                  <PlusCircle className="w-5 h-5 text-amber-500" />
                   <span>Diseñador de Nuevos Retos (1º DAM & 2º SMR)</span>
                 </div>
-                <p className="text-xs text-gray-300 leading-relaxed">
-                  Crea ejercicios adicionales a medida para tus grupos. Se integrará automáticamente en los módulos correspondientes.
+                <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-gray-300'}`}>
+                  Crea ejercicios adicionales a medida para tus grupos. Se integrarán automáticamente en los módulos correspondientes.
                 </p>
 
                 {exSuccessMsg && (
@@ -786,7 +1099,9 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                 <form onSubmit={handleSaveExercise} className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <div>
-                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Sistema Operativo</label>
+                      <label className={`text-[11px] font-medium block mb-1 ${isLight ? 'text-slate-700' : 'text-gray-400'}`}>
+                        Sistema Operativo
+                      </label>
                       <select
                         value={exOs}
                         onChange={(e) => {
@@ -795,7 +1110,11 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                           setExModule(os === 'linux' ? 'Linux - Retos Personalizados' : 'Windows - Retos Personalizados');
                           setExStartDir(os === 'linux' ? '/home/usuario' : 'C:\\Users\\Alumno');
                         }}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                        className={`w-full border rounded-xl px-3 py-2 text-xs outline-none ${
+                          isLight
+                            ? 'bg-white border-slate-300 text-slate-900'
+                            : 'bg-gray-900 border-gray-700 text-white'
+                        }`}
                       >
                         <option value="linux">🐧 Linux (Bash)</option>
                         <option value="windows">🪟 Windows (PowerShell/CMD)</option>
@@ -803,11 +1122,17 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                     </div>
 
                     <div>
-                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Destinado a</label>
+                      <label className={`text-[11px] font-medium block mb-1 ${isLight ? 'text-slate-700' : 'text-gray-400'}`}>
+                        Destinado a
+                      </label>
                       <select
                         value={exTargetCourse}
                         onChange={(e) => setExTargetCourse(e.target.value as CourseGroup | 'TODOS')}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none font-bold"
+                        className={`w-full border rounded-xl px-3 py-2 text-xs outline-none font-bold ${
+                          isLight
+                            ? 'bg-white border-slate-300 text-slate-900'
+                            : 'bg-gray-900 border-gray-700 text-white'
+                        }`}
                       >
                         <option value="TODOS">Ambos (1º DAM & 2º SMR)</option>
                         <option value="1DAM">Específico 1º DAM</option>
@@ -816,23 +1141,35 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                     </div>
 
                     <div>
-                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Módulo o Categoría</label>
+                      <label className={`text-[11px] font-medium block mb-1 ${isLight ? 'text-slate-700' : 'text-gray-400'}`}>
+                        Módulo o Categoría
+                      </label>
                       <input
                         type="text"
                         value={exModule}
                         onChange={(e) => setExModule(e.target.value)}
                         placeholder="Ej: Linux - Permisos Avanzados"
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-400"
+                        className={`w-full border rounded-xl px-3 py-2 text-xs outline-none ${
+                          isLight
+                            ? 'bg-white border-slate-300 text-slate-900 focus:border-amber-500'
+                            : 'bg-gray-900 border-gray-700 text-white focus:border-amber-400'
+                        }`}
                       />
                     </div>
 
                     <div>
-                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Dificultad y XP</label>
+                      <label className={`text-[11px] font-medium block mb-1 ${isLight ? 'text-slate-700' : 'text-gray-400'}`}>
+                        Dificultad y XP
+                      </label>
                       <div className="flex gap-2">
                         <select
                           value={exDifficulty}
                           onChange={(e) => setExDifficulty(e.target.value as 'fácil' | 'medio' | 'avanzado')}
-                          className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-2 py-2 text-xs text-white outline-none"
+                          className={`flex-1 border rounded-xl px-2 py-2 text-xs outline-none ${
+                            isLight
+                              ? 'bg-white border-slate-300 text-slate-900'
+                              : 'bg-gray-900 border-gray-700 text-white'
+                          }`}
                         >
                           <option value="fácil">Fácil</option>
                           <option value="medio">Medio</option>
@@ -842,7 +1179,9 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                           type="number"
                           value={exXp}
                           onChange={(e) => setExXp(Number(e.target.value))}
-                          className="w-20 bg-gray-900 border border-gray-700 rounded-xl px-2 py-2 text-xs text-amber-300 font-mono text-center font-bold outline-none"
+                          className={`w-20 border rounded-xl px-2 py-2 text-xs font-mono text-center font-bold outline-none text-amber-400 ${
+                            isLight ? 'bg-white border-slate-300' : 'bg-gray-900 border-gray-700'
+                          }`}
                           title="Puntos XP"
                         />
                       </div>
@@ -851,86 +1190,124 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Título del Reto</label>
+                      <label className={`text-[11px] font-medium block mb-1 ${isLight ? 'text-slate-700' : 'text-gray-400'}`}>
+                        Título del Reto
+                      </label>
                       <input
                         type="text"
                         value={exTitle}
                         onChange={(e) => setExTitle(e.target.value)}
                         placeholder="Ej: Comprobar usuarios conectados al sistema"
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-400"
+                        className={`w-full border rounded-xl px-3 py-2 text-xs outline-none ${
+                          isLight
+                            ? 'bg-white border-slate-300 text-slate-900 focus:border-amber-500'
+                            : 'bg-gray-900 border-gray-700 text-white focus:border-amber-400'
+                        }`}
                       />
                     </div>
 
                     <div>
-                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Directorio de Inicio (Opcional)</label>
+                      <label className={`text-[11px] font-medium block mb-1 ${isLight ? 'text-slate-700' : 'text-gray-400'}`}>
+                        Directorio de Inicio (Opcional)
+                      </label>
                       <input
                         type="text"
                         value={exStartDir}
                         onChange={(e) => setExStartDir(e.target.value)}
                         placeholder="/home/usuario o C:\Users\Alumno"
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white font-mono outline-none focus:border-amber-400"
+                        className={`w-full border rounded-xl px-3 py-2 text-xs font-mono outline-none ${
+                          isLight
+                            ? 'bg-white border-slate-300 text-slate-900 focus:border-amber-500'
+                            : 'bg-gray-900 border-gray-700 text-white focus:border-amber-400'
+                        }`}
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-[11px] text-gray-400 font-medium block mb-1">Misión (Lo que lee el alumno)</label>
+                    <label className={`text-[11px] font-medium block mb-1 ${isLight ? 'text-slate-700' : 'text-gray-400'}`}>
+                      Misión (Lo que lee el alumno)
+                    </label>
                     <textarea
                       rows={2}
                       value={exMission}
                       onChange={(e) => setExMission(e.target.value)}
                       placeholder="Muestra los usuarios que tienen una sesión activa actualmente en la máquina."
-                      className="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-xs text-white outline-none focus:border-amber-400"
+                      className={`w-full border rounded-xl p-3 text-xs outline-none ${
+                        isLight
+                          ? 'bg-white border-slate-300 text-slate-900 focus:border-amber-500'
+                          : 'bg-gray-900 border-gray-700 text-white focus:border-amber-400'
+                      }`}
                     />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Explicación Teórica / Fundamento</label>
+                      <label className={`text-[11px] font-medium block mb-1 ${isLight ? 'text-slate-700' : 'text-gray-400'}`}>
+                        Explicación Teórica / Fundamento
+                      </label>
                       <input
                         type="text"
                         value={exExplanation}
                         onChange={(e) => setExExplanation(e.target.value)}
                         placeholder="El comando who lee el archivo /var/run/utmp..."
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                        className={`w-full border rounded-xl px-3 py-2 text-xs outline-none ${
+                          isLight
+                            ? 'bg-white border-slate-300 text-slate-900'
+                            : 'bg-gray-900 border-gray-700 text-white'
+                        }`}
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Pista (Hint)</label>
+                      <label className={`text-[11px] font-medium block mb-1 ${isLight ? 'text-slate-700' : 'text-gray-400'}`}>
+                        Pista (Hint)
+                      </label>
                       <input
                         type="text"
                         value={exHint}
                         onChange={(e) => setExHint(e.target.value)}
                         placeholder="Escribe simplemente: who"
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                        className={`w-full border rounded-xl px-3 py-2 text-xs outline-none ${
+                          isLight
+                            ? 'bg-white border-slate-300 text-slate-900'
+                            : 'bg-gray-900 border-gray-700 text-white'
+                        }`}
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] text-gray-400 font-medium block mb-1">
-                        Comando(s) Aceptado(s) <span className="text-gray-500">(uno por línea si hay variantes)</span>
+                      <label className={`text-[11px] font-medium block mb-1 ${isLight ? 'text-slate-700' : 'text-gray-400'}`}>
+                        Comando(s) Aceptado(s) <span className="opacity-60">(uno por línea si hay variantes)</span>
                       </label>
                       <textarea
                         rows={3}
                         value={exCommands}
                         onChange={(e) => setExCommands(e.target.value)}
                         placeholder={`who\nw`}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-xs text-emerald-400 font-mono outline-none focus:border-emerald-500"
+                        className={`w-full border rounded-xl p-3 text-xs font-mono outline-none ${
+                          isLight
+                            ? 'bg-white border-slate-300 text-emerald-700 focus:border-emerald-600'
+                            : 'bg-gray-900 border-gray-700 text-emerald-400 focus:border-emerald-500'
+                        }`}
                       />
                     </div>
 
                     <div>
-                      <label className="text-[11px] text-gray-400 font-medium block mb-1">
-                        Salida Simulada en Terminal <span className="text-gray-500">(lo que imprimirá la pantalla)</span>
+                      <label className={`text-[11px] font-medium block mb-1 ${isLight ? 'text-slate-700' : 'text-gray-400'}`}>
+                        Salida Simulada en Terminal <span className="opacity-60">(lo que imprimirá la pantalla)</span>
                       </label>
                       <textarea
                         rows={3}
                         value={exOutput}
                         onChange={(e) => setExOutput(e.target.value)}
                         placeholder={`usuario   pts/0        2026-11-16 14:20 (:0)\nprofesor  pts/1        2026-11-16 15:00 (192.168.1.50)`}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-xs text-cyan-300 font-mono outline-none focus:border-cyan-500"
+                        className={`w-full border rounded-xl p-3 text-xs font-mono outline-none ${
+                          isLight
+                            ? 'bg-white border-slate-300 text-cyan-800 focus:border-cyan-600'
+                            : 'bg-gray-900 border-gray-700 text-cyan-300 focus:border-cyan-500'
+                        }`}
                       />
                     </div>
                   </div>
@@ -948,13 +1325,25 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
               </div>
 
               {/* List of custom exercises already created */}
-              <div className="bg-gray-950/80 border border-gray-800 rounded-2xl overflow-hidden">
-                <div className="p-4 bg-gray-900/90 border-b border-gray-800 flex items-center justify-between">
-                  <span className="text-xs font-bold text-white uppercase font-mono flex items-center gap-1.5">
-                    <BookOpen className="w-4 h-4 text-amber-400" />
+              <div
+                className={`border rounded-2xl overflow-hidden ${
+                  isLight
+                    ? 'bg-white border-slate-200'
+                    : isMatrix
+                    ? 'bg-[#031508] border-[#00ff66]/30'
+                    : 'bg-gray-950/80 border-gray-800'
+                }`}
+              >
+                <div
+                  className={`p-4 border-b flex items-center justify-between ${
+                    isLight ? 'bg-slate-100 border-slate-200' : 'bg-gray-900/90 border-gray-800'
+                  }`}
+                >
+                  <span className={`text-xs font-bold uppercase font-mono flex items-center gap-1.5 ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                    <BookOpen className="w-4 h-4 text-amber-500" />
                     Retos Creados por el Docente ({customExercises.length})
                   </span>
-                  <span className="text-[11px] text-gray-400">
+                  <span className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
                     Se muestran automáticamente en los módulos de los alumnos
                   </span>
                 </div>
@@ -964,14 +1353,27 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                     Aún no has creado ningún reto personalizado. Rellena el formulario superior para añadir uno nuevo.
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-800/80 text-xs">
+                  <div
+                    className={`divide-y text-xs ${
+                      isLight ? 'divide-slate-200' : isMatrix ? 'divide-[#00ff66]/15' : 'divide-gray-800/80'
+                    }`}
+                  >
                     {customExercises.map((ex) => (
-                      <div key={ex.id} className="p-4 flex items-center justify-between hover:bg-gray-900/40">
+                      <div
+                        key={ex.id}
+                        className={`p-4 flex items-center justify-between transition ${
+                          isLight ? 'hover:bg-slate-50' : 'hover:bg-gray-900/40'
+                        }`}
+                      >
                         <div className="space-y-1">
                           <div className="flex items-center space-x-2">
                             <span className="text-base">{ex.os === 'linux' ? '🐧' : '🪟'}</span>
-                            <span className="font-bold text-white">{ex.title}</span>
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-gray-800 text-gray-300">
+                            <span className={`font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{ex.title}</span>
+                            <span
+                              className={`text-[10px] font-mono px-2 py-0.5 rounded ${
+                                isLight ? 'bg-slate-200 text-slate-700' : 'bg-gray-800 text-gray-300'
+                              }`}
+                            >
                               {ex.module}
                             </span>
                             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 font-bold">
@@ -983,12 +1385,12 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                               </span>
                             )}
                           </div>
-                          <p className="text-gray-400 text-[11px]">{ex.mission}</p>
+                          <p className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>{ex.mission}</p>
                         </div>
 
                         <button
                           onClick={() => handleDeleteExercise(ex.id)}
-                          className="p-2 text-gray-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-xl transition"
+                          className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-950/40 rounded-xl transition"
                           title="Eliminar este reto"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1004,28 +1406,46 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
 
         {/* Drill-down Modal for Selected Student */}
         {selectedStudent && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/80">
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-xl max-h-[80vh] flex flex-col p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+          <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+            <div
+              className={`border-2 rounded-2xl w-full max-w-xl max-h-[80vh] flex flex-col p-5 space-y-4 shadow-2xl relative ${
+                isLight
+                  ? 'bg-white border-slate-300 text-slate-800 shadow-slate-300'
+                  : isMatrix
+                  ? 'bg-[#030d05] border-[#00ff66]/50 text-[#d4ffe0]'
+                  : 'bg-gray-900 border-indigo-500/40 text-gray-100'
+              }`}
+            >
+              <div
+                className={`flex items-center justify-between border-b pb-3 ${
+                  isLight ? 'border-slate-200' : 'border-gray-800'
+                }`}
+              >
                 <div>
-                  <h3 className="font-bold text-base text-white flex items-center gap-2">
+                  <h3 className={`font-bold text-base flex items-center gap-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>
                     {selectedStudent.studentName}
                     <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 font-mono font-bold border border-indigo-800">
                       {selectedStudent.course === '1DAM' ? '1º DAM' : '2º SMR'}
                     </span>
                   </h3>
-                  <p className="text-xs text-gray-400 font-mono">{selectedStudent.studentEmail}</p>
+                  <p className={`text-xs font-mono ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
+                    {selectedStudent.studentEmail}
+                  </p>
                 </div>
                 <button
                   onClick={() => setSelectedStudent(null)}
-                  className="p-1 rounded-lg text-gray-400 hover:text-white"
+                  className={`p-1.5 rounded-lg transition ${
+                    isLight ? 'text-slate-400 hover:text-slate-900 hover:bg-slate-100' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                  }`}
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <div className="space-y-2 flex-1 overflow-y-auto pr-1">
-                <div className="text-xs font-bold uppercase text-gray-400">Últimos comandos intentados:</div>
+                <div className={`text-xs font-bold uppercase ${isLight ? 'text-slate-600' : 'text-gray-400'}`}>
+                  Últimos comandos intentados:
+                </div>
                 {selectedStudent.recentAttempts.length === 0 ? (
                   <div className="text-xs text-gray-500 italic p-4 text-center">
                     No hay intentos registrados recientemente para este usuario.
@@ -1034,11 +1454,17 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                   selectedStudent.recentAttempts.map((att, i) => (
                     <div
                       key={i}
-                      className="bg-gray-950 p-3 rounded-xl border border-gray-800 flex items-center justify-between text-xs font-mono"
+                      className={`p-3 rounded-xl border flex items-center justify-between text-xs font-mono ${
+                        isLight
+                          ? 'bg-slate-50 border-slate-200 text-slate-800'
+                          : 'bg-gray-950 border-gray-800'
+                      }`}
                     >
                       <div className="space-y-0.5">
-                        <div className="text-gray-300 font-sans font-semibold">{att.exerciseTitle}</div>
-                        <div className="text-emerald-400">
+                        <div className={`font-sans font-semibold ${isLight ? 'text-slate-900' : 'text-gray-300'}`}>
+                          {att.exerciseTitle}
+                        </div>
+                        <div className={isLight ? 'text-emerald-700 font-bold' : 'text-emerald-400'}>
                           <code>$ {att.command}</code>
                         </div>
                       </div>
@@ -1052,7 +1478,9 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                         >
                           {att.success ? 'Acierto' : 'Fallo'}
                         </span>
-                        <div className="text-[10px] text-gray-500">{att.timestamp}</div>
+                        <div className={`text-[10px] ${isLight ? 'text-slate-400' : 'text-gray-500'}`}>
+                          {att.timestamp}
+                        </div>
                       </div>
                     </div>
                   ))
