@@ -19,14 +19,13 @@ export interface Exercise {
   id: string;
   title: string;
   os: OperatingSystem;
-  module: string; // e.g. "RA3.1 Navegación y listado", "RA3.2 Archivos y Directorios"
+  module: string;
   difficulty: 'fácil' | 'medio' | 'avanzado';
   xpReward: number;
   mission: string;
   explanation: string;
   startingDir?: string;
   hint: string;
-  // Validation can check command regex/strings, virtual filesystem state, or output
   validCommandPatterns: (string | RegExp)[];
   simulatedOutput: string;
   secondaryValidCommands?: string[];
@@ -61,6 +60,7 @@ export interface StudentProgressRow {
   studentId: string;
   studentName: string;
   studentEmail: string;
+  initialPassword?: string;
   level: number;
   xp: number;
   streak: number;
@@ -74,4 +74,17 @@ export interface StudentProgressRow {
     success: boolean;
     timestamp: string;
   }[];
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  id: string;
+  name: string;
+  avatar: string;
+  xp: number;
+  level: number;
+  streak: number;
+  completedCount: number;
+  rankTitle: string;
+  isCurrentUser?: boolean;
 }

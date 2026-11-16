@@ -13,6 +13,7 @@ import { ExerciseList } from './components/ExerciseList';
 import { ExerciseView } from './components/ExerciseView';
 import { TerminalComponent } from './components/Terminal';
 import { BadgesModal } from './components/BadgesModal';
+import { LeaderboardModal } from './components/LeaderboardModal';
 import { TeacherPanel } from './components/TeacherPanel';
 import { AuthModal } from './components/AuthModal';
 import { LevelUpModal } from './components/LevelUpModal';
@@ -26,6 +27,7 @@ export const App: React.FC = () => {
 
   // Modals state
   const [isBadgesOpen, setIsBadgesOpen] = useState(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [isTeacherPanelOpen, setIsTeacherPanelOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [levelUpData, setLevelUpData] = useState<{ newLevel: number; newXp: number } | null>(null);
@@ -103,8 +105,8 @@ export const App: React.FC = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center text-emerald-400 font-mono text-sm">
-        Cargando ComandQuest...
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center text-cyan-400 font-mono text-sm">
+        INICIALIZANDO COMANDQUEST CYBER...
       </div>
     );
   }
@@ -112,13 +114,14 @@ export const App: React.FC = () => {
   const isCompleted = user.completed_exercises.includes(activeExercise.id);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#090d13] text-gray-100 selection:bg-emerald-500 selection:text-black">
+    <div className="min-h-screen flex flex-col bg-[#070b14] text-gray-100 selection:bg-cyan-500 selection:text-black">
       {/* Top Navigation Bar */}
       <Navbar
         user={user}
         currentOS={currentOS}
         onSelectOS={handleSelectOS}
         onOpenBadges={() => setIsBadgesOpen(true)}
+        onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
         onToggleRole={handleToggleRole}
         onOpenTeacherPanel={() => setIsTeacherPanelOpen(true)}
         soundEnabled={soundEnabled}
@@ -128,7 +131,7 @@ export const App: React.FC = () => {
       {/* Main Workspace Layout */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Left Column: Curriculum Modules List (4 cols) */}
-        <aside className="lg:col-span-4 h-[400px] lg:h-[calc(100vh-100px)]">
+        <aside className="lg:col-span-4 h-[400px] lg:h-[calc(100vh-95px)]">
           <ExerciseList
             os={currentOS}
             modules={MODULES}
@@ -139,7 +142,7 @@ export const App: React.FC = () => {
         </aside>
 
         {/* Right Column: Mission Card + Simulated Terminal (8 cols) */}
-        <section className="lg:col-span-8 flex flex-col space-y-4 h-[calc(100vh-100px)]">
+        <section className="lg:col-span-8 flex flex-col space-y-4 h-[calc(100vh-95px)]">
           {/* Mission & Guidance Card (Top) */}
           <div className="shrink-0">
             <ExerciseView
@@ -164,6 +167,12 @@ export const App: React.FC = () => {
       </main>
 
       {/* Modals */}
+      <LeaderboardModal
+        isOpen={isLeaderboardOpen}
+        onClose={() => setIsLeaderboardOpen(false)}
+        currentUserId={user.id}
+      />
+
       <BadgesModal
         isOpen={isBadgesOpen}
         onClose={() => setIsBadgesOpen(false)}

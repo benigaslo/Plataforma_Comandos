@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { OperatingSystem, TerminalLine, Exercise } from '../types';
 import { TerminalSimulator } from '../lib/terminalSimulator';
 import { sounds } from '../lib/sound';
-import { Send, Trash2, HelpCircle, Terminal as TerminalIcon } from 'lucide-react';
+import { Send, Trash2, HelpCircle, Terminal as TerminalIcon, ShieldCheck } from 'lucide-react';
 
 interface TerminalProps {
   os: OperatingSystem;
@@ -26,10 +26,8 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Sync simulator whenever OS or activeExercise changes
   useEffect(() => {
     simulator.setOS(os, activeExercise?.startingDir);
-    // Reset terminal banner for new challenge
     const banner =
       os === 'linux'
         ? [
@@ -70,7 +68,6 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
 
     sounds.playKey();
 
-    // Add user input line to view
     const userLine: TerminalLine = {
       id: Math.random().toString(),
       type: 'input',
@@ -86,7 +83,6 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
       setLines((prev) => [...prev, userLine, ...result.outputLines]);
     }
 
-    // History tracking
     setHistory((prev) => [...prev, cmd]);
     setHistoryIndex(-1);
     setInputVal('');
@@ -132,30 +128,33 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
   return (
     <div
       onClick={() => inputRef.current?.focus()}
-      className="flex flex-col h-full bg-[#0d1117] rounded-2xl border border-gray-800 shadow-2xl overflow-hidden font-mono"
+      className="flex flex-col h-full bg-[#080d1a] rounded-3xl border-2 border-cyan-500/30 shadow-2xl shadow-cyan-950/40 overflow-hidden font-mono relative"
     >
-      {/* Terminal Title Bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-gray-900/90 border-b border-gray-800 select-none">
+      {/* Top Cyber Bar */}
+      <div className="flex items-center justify-between px-4 py-2.5 bg-gray-950/90 border-b border-cyan-500/20 select-none">
         <div className="flex items-center space-x-2">
-          {/* OS-styled Window Dots */}
+          {/* Neon Dots */}
           <div className="flex space-x-1.5">
-            <span className="w-3 h-3 rounded-full bg-red-500/80 inline-block"></span>
-            <span className="w-3 h-3 rounded-full bg-yellow-500/80 inline-block"></span>
-            <span className="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block shadow-sm shadow-rose-500/50"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block shadow-sm shadow-amber-400/50"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block shadow-sm shadow-emerald-400/50"></span>
           </div>
 
-          <div className="flex items-center space-x-1.5 ml-2 text-xs text-gray-400 font-medium">
-            <TerminalIcon className="w-3.5 h-3.5 text-gray-400" />
+          <div className="flex items-center space-x-1.5 ml-2 text-xs text-cyan-300 font-semibold">
+            <TerminalIcon className="w-3.5 h-3.5 text-cyan-400" />
             <span>
-              {os === 'linux' ? 'bash - usuario@ies-benigaslo' : 'Windows PowerShell (Administrator)'}
+              {os === 'linux' ? 'bash // netrunner@benigaslo' : 'powershell // sysadmin@benigaslo'}
             </span>
           </div>
         </div>
 
         <div className="flex items-center space-x-2">
+          <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+            <ShieldCheck className="w-3 h-3 text-emerald-400" /> SANDBOX ONLINE
+          </span>
           <button
             onClick={clearScreen}
-            className="flex items-center space-x-1 px-2 py-1 rounded text-[11px] text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition"
+            className="flex items-center space-x-1 px-2 py-1 rounded-lg text-[11px] text-gray-400 hover:text-cyan-300 hover:bg-gray-800/80 transition"
             title="Limpiar terminal"
           >
             <Trash2 className="w-3 h-3" />
@@ -165,29 +164,29 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
       </div>
 
       {/* Terminal Output Area */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-2 text-xs sm:text-sm leading-relaxed scrollbar-thin scrollbar-thumb-gray-700">
+      <div className="flex-1 p-4 overflow-y-auto space-y-2 text-xs sm:text-sm leading-relaxed scrollbar-thin scrollbar-thumb-cyan-950">
         {lines.map((line) => (
           <div key={line.id}>
             {line.type === 'input' && (
-              <div className="flex flex-wrap items-baseline gap-1 text-gray-300">
-                <span className={os === 'linux' ? 'text-emerald-400 font-bold' : 'text-blue-400 font-bold'}>
+              <div className="flex flex-wrap items-baseline gap-1 text-gray-200">
+                <span className={os === 'linux' ? 'text-emerald-400 font-black' : 'text-cyan-400 font-black'}>
                   {line.prompt}
                 </span>
-                <span className="text-white font-semibold">{line.content}</span>
+                <span className="text-white font-bold">{line.content}</span>
               </div>
             )}
             {line.type === 'output' && (
-              <pre className="text-gray-300 whitespace-pre-wrap font-mono pl-2 border-l border-gray-800/80">
+              <pre className="text-gray-300 whitespace-pre-wrap font-mono pl-3 border-l-2 border-gray-800">
                 {line.content}
               </pre>
             )}
             {line.type === 'error' && (
-              <div className="text-rose-400 font-mono pl-2 border-l-2 border-rose-500 bg-rose-950/20 py-1 rounded-r">
+              <div className="text-rose-400 font-mono pl-3 border-l-2 border-rose-500 bg-rose-950/30 py-1.5 rounded-r">
                 {line.content}
               </div>
             )}
             {line.type === 'success' && (
-              <div className="text-emerald-300 font-mono pl-2 border-l-2 border-emerald-400 bg-emerald-950/30 py-1.5 rounded-r font-bold flex items-center gap-1.5 animate-pulse">
+              <div className="text-emerald-300 font-mono pl-3 border-l-2 border-emerald-400 bg-emerald-950/40 py-2 rounded-r font-black flex items-center gap-1.5 shadow-md shadow-emerald-500/10">
                 {line.content}
               </div>
             )}
@@ -204,11 +203,11 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
       {/* Command Input Bar */}
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-2 p-3 bg-gray-900/60 border-t border-gray-800"
+        className="flex items-center gap-2 p-3 bg-gray-950/80 border-t border-cyan-500/20"
       >
         <span
-          className={`text-xs font-bold font-mono select-none ${
-            os === 'linux' ? 'text-emerald-400' : 'text-blue-400'
+          className={`text-xs font-black font-mono select-none ${
+            os === 'linux' ? 'text-emerald-400' : 'text-cyan-400'
           }`}
         >
           {simulator.getPrompt()}
@@ -219,14 +218,14 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
           value={inputVal}
           onChange={(e) => setInputVal(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Escribe tu comando aquí..."
-          className="flex-1 bg-transparent text-gray-100 outline-none font-mono text-xs sm:text-sm placeholder-gray-600 caret-emerald-400"
+          placeholder="Escribe el comando del reto aquí..."
+          className="flex-1 bg-transparent text-gray-100 outline-none font-mono text-xs sm:text-sm placeholder-gray-600 caret-cyan-400 font-semibold"
           autoFocus
         />
         <button
           type="submit"
           disabled={!inputVal.trim()}
-          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:hover:bg-emerald-600 text-black font-bold rounded-lg text-xs flex items-center space-x-1 transition shadow-sm"
+          className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-400 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 disabled:opacity-30 text-black font-black rounded-xl text-xs flex items-center space-x-1 transition shadow-md shadow-cyan-500/20"
         >
           <span>Ejecutar</span>
           <Send className="w-3.5 h-3.5" />
@@ -234,12 +233,12 @@ export const TerminalComponent: React.FC<TerminalProps> = ({
       </form>
 
       {/* Quick helper tip */}
-      <div className="px-4 py-1.5 bg-gray-950/90 border-t border-gray-800/60 flex items-center justify-between text-[11px] text-gray-500">
+      <div className="px-4 py-1.5 bg-[#050912] border-t border-gray-900 flex items-center justify-between text-[11px] text-gray-500">
         <span className="flex items-center gap-1">
-          <HelpCircle className="w-3 h-3 text-gray-400" />
+          <HelpCircle className="w-3 h-3 text-cyan-500" />
           Tip: Usa las flechas ↑ ↓ para recuperar comandos anteriores
         </span>
-        <span>Simulador IES Benigaslo</span>
+        <span className="text-cyan-400 font-mono font-bold">CYBER-PROMPT v2</span>
       </div>
     </div>
   );
