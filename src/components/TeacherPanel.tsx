@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { StudentProgressRow } from '../types';
+import { StudentProgressRow, Exercise, OperatingSystem } from '../types';
 import {
   fetchClassroomProgress,
   createStudentAccount,
   bulkCreateStudents,
   deleteStudent,
 } from '../lib/supabase';
+import {
+  getStoredCustomExercises,
+  saveCustomExercise,
+  deleteCustomExercise,
+} from '../data/exercises';
 import { sounds } from '../lib/sound';
 import {
   Users,
@@ -22,15 +27,22 @@ import {
   AlertCircle,
   Check,
   GraduationCap,
+  PlusCircle,
+  BookOpen,
 } from 'lucide-react';
 
 interface TeacherPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  onExercisesUpdated?: () => void;
 }
 
-export const TeacherPanel: React.FC<TeacherPanelProps> = ({ isOpen, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'monitoring' | 'management'>('monitoring');
+export const TeacherPanel: React.FC<TeacherPanelProps> = ({
+  isOpen,
+  onClose,
+  onExercisesUpdated,
+}) => {
+  const [activeTab, setActiveTab] = useState<'monitoring' | 'management' | 'exercises'>('monitoring');
   const [students, setStudents] = useState<StudentProgressRow[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<StudentProgressRow | null>(null);
@@ -46,8 +58,24 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({ isOpen, onClose }) =
   const [bulkText, setBulkText] = useState('');
   const [bulkMsg, setBulkMsg] = useState<string | null>(null);
 
+  // Custom Exercise Creation State
+  const [customExercises, setCustomExercises] = useState<Exercise[]>([]);
+  const [exOs, setExOs] = useState<OperatingSystem>('linux');
+  const [exModule, setExModule] = useState('Linux - Retos Personalizados');
+  const [exTitle, setExTitle] = useState('');
+  const [exDifficulty, setExDifficulty] = useState<'fácil' | 'medio' | 'avanzado'>('medio');
+  const [exXp, setExXp] = useState(75);
+  const [exStartDir, setExStartDir] = useState('/home/usuario');
+  const [exMission, setExMission] = useState('');
+  const [exExplanation, setExExplanation] = useState('');
+  const [exHint, setExHint] = useState('');
+  const [exCommands, setExCommands] = useState('');
+  const [exOutput, setExOutput] = useState('');
+  const [exSuccessMsg, setExSuccessMsg] = useState<string | null>(null);
+
   const loadData = () => {
     fetchClassroomProgress().then(setStudents);
+    setCustomExercises(getStoredCustomExercises());
   };
 
   useEffect(() => {
@@ -130,6 +158,63 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({ isOpen, onClose }) =
     }
   };
 
+  const handleSaveExercise = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!exTitle.trim() || !exMission.trim() || !exCommands.trim()) {
+      alert('Por favor completa al menos el título, la misión y los comandos válidos.');
+      return;
+    }
+
+    sounds.playSuccess();
+    const id = `custom-${exOs}-${Date.now().toString(36)}`;
+    const validPatterns = exCommands
+      .split('\n')
+      .map((c) => c.trim())
+      .filter(Boolean)
+      .map((c) => {
+        // Normalize as RegExp
+        return new RegExp(`^${c.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i');
+      });
+
+    const newEx: Exercise = {
+      id,
+      title: exTitle.trim(),
+      os: exOs,
+      module: exModule.trim() || `${exOs === 'linux' ? 'Linux' : 'Windows'} - Personalizados`,
+      difficulty: exDifficulty,
+      xpReward: Number(exXp) || 75,
+      startingDir: exStartDir.trim() || (exOs === 'linux' ? '/home/usuario' : 'C:\\Users\\Alumno'),
+      mission: exMission.trim(),
+      explanation: exExplanation.trim() || 'Reto creado por el docente.',
+      hint: exHint.trim() || 'Revisa la sintaxis del comando indicado.',
+      validCommandPatterns: validPatterns,
+      simulatedOutput: exOutput.trim() || '(Comando ejecutado con éxito por el sistema)',
+      isCustom: true,
+      createdBy: 'Profesor',
+    };
+
+    saveCustomExercise(newEx);
+    setCustomExercises(getStoredCustomExercises());
+    setExSuccessMsg(`✔ Reto "${newEx.title}" creado con éxito.`);
+    setExTitle('');
+    setExMission('');
+    setExCommands('');
+    setExExplanation('');
+    setExHint('');
+    setExOutput('');
+
+    onExercisesUpdated?.();
+  };
+
+  const handleDeleteExercise = (id: string) => {
+    if (confirm('¿Eliminar este ejercicio personalizado?')) {
+      sounds.playKey();
+      deleteCustomExercise(id);
+      setCustomExercises(getStoredCustomExercises());
+      onExercisesUpdated?.();
+    }
+  };
+
   const exportCSV = () => {
     sounds.playKey();
     const headers = 'ID,Nombre,Email,Contraseña_Inicial,Nivel,XP,Racha,Completados,Total,Porcentaje\n';
@@ -152,7 +237,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({ isOpen, onClose }) =
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
-      <div className="bg-gray-900 border-2 border-indigo-500/40 rounded-3xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl shadow-indigo-500/10 overflow-hidden">
+      <div className="bg-gradient-to-b from-gray-900 via-[#0b101d] to-gray-950 border-2 border-indigo-500/40 rounded-3xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl shadow-indigo-500/10 overflow-hidden">
         {/* Header Bar */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-gray-950/70">
           <div className="flex items-center space-x-3">
@@ -161,13 +246,13 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({ isOpen, onClose }) =
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h2 className="text-lg font-black text-white">Centro de Mando Docente</h2>
+                <h2 className="text-lg font-black text-white font-mono">PANEL DE CONTROL DOCENTE</h2>
                 <span className="text-xs bg-indigo-950 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-800 font-mono">
                   1º DAM • SINF
                 </span>
               </div>
               <p className="text-xs text-gray-400">
-                Gestión de cuentas de alumnos y supervisión del progreso en tiempo real
+                Gestión de cuentas, diseño de nuevos retos formativos y auditoría de notas
               </p>
             </div>
           </div>
@@ -179,7 +264,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({ isOpen, onClose }) =
               title="Descargar lista de alumnos y contraseñas en CSV"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Exportar Alumnos CSV</span>
+              <span>Exportar CSV</span>
             </button>
 
             <button
@@ -195,7 +280,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({ isOpen, onClose }) =
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center px-6 pt-3 border-b border-gray-800 bg-gray-950/40 gap-4">
+        <div className="flex items-center px-6 pt-3 border-b border-gray-800 bg-gray-950/40 gap-4 flex-wrap">
           <button
             onClick={() => {
               sounds.playKey();
@@ -208,7 +293,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({ isOpen, onClose }) =
             }`}
           >
             <Users className="w-4 h-4" />
-            <span>📊 Monitorización de Retos & Puntuaciones</span>
+            <span>📊 Monitorización de Retos</span>
           </button>
 
           <button
@@ -223,13 +308,28 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({ isOpen, onClose }) =
             }`}
           >
             <UserPlus className="w-4 h-4" />
-            <span>👥 Crear & Gestionar Cuentas de Alumnos</span>
+            <span>👥 Crear & Gestionar Alumnos</span>
+          </button>
+
+          <button
+            onClick={() => {
+              sounds.playKey();
+              setActiveTab('exercises');
+            }}
+            className={`pb-3 text-xs font-bold transition flex items-center space-x-2 border-b-2 ${
+              activeTab === 'exercises'
+                ? 'border-amber-400 text-amber-300'
+                : 'border-transparent text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            <PlusCircle className="w-4 h-4 text-amber-400" />
+            <span>✏️ Creador de Retos (Añadir Ejercicio)</span>
           </button>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-gray-700">
-          {activeTab === 'monitoring' ? (
+          {activeTab === 'monitoring' && (
             <>
               {/* KPI Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -350,8 +450,9 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({ isOpen, onClose }) =
                 </table>
               </div>
             </>
-          ) : (
-            /* TAB: GESTIÓN DIRECTA DE USUARIOS */
+          )}
+
+          {activeTab === 'management' && (
             <div className="space-y-6">
               {/* Form 1: Crear Alumno Individual */}
               <div className="bg-gray-950/80 border border-gray-800 p-5 rounded-2xl space-y-4">
@@ -421,7 +522,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({ isOpen, onClose }) =
                 </form>
               </div>
 
-              {/* Form 2: Alta Masiva (Copiar y Pegar lista de clase) */}
+              {/* Form 2: Alta Masiva */}
               <div className="bg-gray-950/80 border border-gray-800 p-5 rounded-2xl space-y-3">
                 <div className="flex items-center space-x-2 text-sm font-bold text-white">
                   <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
@@ -490,6 +591,225 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({ isOpen, onClose }) =
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'exercises' && (
+            /* TAB: CREADOR DE RETOS (AÑADIR EJERCICIO DIRECTAMENTE) */
+            <div className="space-y-6">
+              <div className="bg-gray-950/80 border-2 border-amber-500/40 p-5 rounded-2xl space-y-4">
+                <div className="flex items-center space-x-2 text-sm font-bold text-amber-300">
+                  <PlusCircle className="w-5 h-5 text-amber-400" />
+                  <span>Diseñador de Nuevos Retos para los Alumnos</span>
+                </div>
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  Crea ejercicios adicionales a medida para tus alumnos. El ejercicio se integrará automáticamente en la lista de módulos de la plataforma y estará disponible al instante para que lo resuelvan.
+                </p>
+
+                {exSuccessMsg && (
+                  <div className="p-3 bg-emerald-950/70 border border-emerald-600 text-emerald-300 text-xs rounded-xl flex items-center gap-2">
+                    <Check className="w-4 h-4" />
+                    <span>{exSuccessMsg}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSaveExercise} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Sistema Operativo</label>
+                      <select
+                        value={exOs}
+                        onChange={(e) => {
+                          const os = e.target.value as OperatingSystem;
+                          setExOs(os);
+                          setExModule(os === 'linux' ? 'Linux - Retos Personalizados' : 'Windows - Retos Personalizados');
+                          setExStartDir(os === 'linux' ? '/home/usuario' : 'C:\\Users\\Alumno');
+                        }}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                      >
+                        <option value="linux">🐧 Linux (Bash)</option>
+                        <option value="windows">🪟 Windows (PowerShell/CMD)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Módulo o Categoría</label>
+                      <input
+                        type="text"
+                        value={exModule}
+                        onChange={(e) => setExModule(e.target.value)}
+                        placeholder="Ej: Linux - Permisos Avanzados"
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Dificultad y Recompensa XP</label>
+                      <div className="flex gap-2">
+                        <select
+                          value={exDifficulty}
+                          onChange={(e) => setExDifficulty(e.target.value as 'fácil' | 'medio' | 'avanzado')}
+                          className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-2 py-2 text-xs text-white outline-none"
+                        >
+                          <option value="fácil">Fácil</option>
+                          <option value="medio">Medio</option>
+                          <option value="avanzado">Avanzado</option>
+                        </select>
+                        <input
+                          type="number"
+                          value={exXp}
+                          onChange={(e) => setExXp(Number(e.target.value))}
+                          className="w-20 bg-gray-900 border border-gray-700 rounded-xl px-2 py-2 text-xs text-amber-300 font-mono text-center font-bold outline-none"
+                          title="Puntos XP"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Título del Reto</label>
+                      <input
+                        type="text"
+                        value={exTitle}
+                        onChange={(e) => setExTitle(e.target.value)}
+                        placeholder="Ej: Comprobar usuarios conectados al sistema"
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Directorio de Inicio (Opcional)</label>
+                      <input
+                        type="text"
+                        value={exStartDir}
+                        onChange={(e) => setExStartDir(e.target.value)}
+                        placeholder="/home/usuario o C:\Users\Alumno"
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white font-mono outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] text-gray-400 font-medium block mb-1">Misión (Lo que lee el alumno)</label>
+                    <textarea
+                      rows={2}
+                      value={exMission}
+                      onChange={(e) => setExMission(e.target.value)}
+                      placeholder="Muestra los usuarios que tienen una sesión activa actualmente en la máquina."
+                      className="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-xs text-white outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Explicación Teórica / Fundamento</label>
+                      <input
+                        type="text"
+                        value={exExplanation}
+                        onChange={(e) => setExExplanation(e.target.value)}
+                        placeholder="El comando who lee el archivo /var/run/utmp..."
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Pista (Hint)</label>
+                      <input
+                        type="text"
+                        value={exHint}
+                        onChange={(e) => setExHint(e.target.value)}
+                        placeholder="Escribe simplemente: who"
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] text-gray-400 font-medium block mb-1">
+                        Comando(s) Aceptado(s) <span className="text-gray-500">(uno por línea si hay variantes)</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={exCommands}
+                        onChange={(e) => setExCommands(e.target.value)}
+                        placeholder={`who\nw`}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-xs text-emerald-400 font-mono outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] text-gray-400 font-medium block mb-1">
+                        Salida Simulada en Terminal <span className="text-gray-500">(lo que imprimirá la pantalla)</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={exOutput}
+                        onChange={(e) => setExOutput(e.target.value)}
+                        placeholder={`usuario   pts/0        2026-11-16 14:20 (:0)\nprofesor  pts/1        2026-11-16 15:00 (192.168.1.50)`}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-xs text-cyan-300 font-mono outline-none focus:border-cyan-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-black font-extrabold rounded-xl text-xs shadow-lg shadow-amber-500/20 transition flex items-center space-x-2"
+                    >
+                      <PlusCircle className="w-4 h-4" />
+                      <span>Publicar Nuevo Reto en la Plataforma</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* List of custom exercises already created */}
+              <div className="bg-gray-950/80 border border-gray-800 rounded-2xl overflow-hidden">
+                <div className="p-4 bg-gray-900/90 border-b border-gray-800 flex items-center justify-between">
+                  <span className="text-xs font-bold text-white uppercase font-mono flex items-center gap-1.5">
+                    <BookOpen className="w-4 h-4 text-amber-400" />
+                    Retos Creados por el Docente ({customExercises.length})
+                  </span>
+                  <span className="text-[11px] text-gray-400">
+                    Se muestran automáticamente en los módulos de los alumnos
+                  </span>
+                </div>
+
+                {customExercises.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-gray-500 italic">
+                    Aún no has creado ningún reto personalizado. Rellena el formulario superior para añadir uno nuevo.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-800/80 text-xs">
+                    {customExercises.map((ex) => (
+                      <div key={ex.id} className="p-4 flex items-center justify-between hover:bg-gray-900/40">
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-base">{ex.os === 'linux' ? '🐧' : '🪟'}</span>
+                            <span className="font-bold text-white">{ex.title}</span>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-gray-800 text-gray-300">
+                              {ex.module}
+                            </span>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 font-bold">
+                              +{ex.xpReward} XP
+                            </span>
+                          </div>
+                          <p className="text-gray-400 text-[11px]">{ex.mission}</p>
+                        </div>
+
+                        <button
+                          onClick={() => handleDeleteExercise(ex.id)}
+                          className="p-2 text-gray-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-xl transition"
+                          title="Eliminar este reto"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

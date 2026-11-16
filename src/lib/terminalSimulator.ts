@@ -5,6 +5,7 @@ export interface CommandExecutionResult {
   outputLines: TerminalLine[];
   feedback?: string;
   earnedXp?: number;
+  easterEgg?: string;
 }
 
 export class TerminalSimulator {
@@ -33,7 +34,7 @@ export class TerminalSimulator {
   public getPrompt(): string {
     if (this.os === 'linux') {
       const displayPath = this.currentDir === '/home/usuario' ? '~' : this.currentDir;
-      return `usuario@ies-benigaslo:${displayPath}$ `;
+      return `usuario@benigaslo-cyberdeck:${displayPath}$ `;
     } else {
       return `PS ${this.currentDir}> `;
     }
@@ -49,10 +50,9 @@ export class TerminalSimulator {
     }
 
     this.history.push(trimmed);
-
-    // 1. Check for universal / OS built-in commands (like clear, cls, whoami, etc.)
     const lower = trimmed.toLowerCase();
 
+    // 1. Clear terminal
     if (lower === 'clear' || lower === 'cls') {
       return {
         isCorrect: false,
@@ -60,7 +60,51 @@ export class TerminalSimulator {
       };
     }
 
-    // 2. If an exercise is active, check validation first
+    // 2. FUN GEEK / GAMER EASTER EGGS
+    if (lower === 'matrix') {
+      return {
+        isCorrect: false,
+        outputLines: [
+          { id: Math.random().toString(), type: 'system', content: '[MATRIX OVERRIDE INITIATED...]' },
+          { id: Math.random().toString(), type: 'success', content: '01000010 01100101 01101110 01101001 01100111 01100001 01110011 01101100 01101111' },
+          { id: Math.random().toString(), type: 'output', content: 'Despierta, Neo... La terminal de DAM te ha elegido. Sigue al pingüino blanco 🐇🐧' },
+        ],
+        easterEgg: 'matrix',
+      };
+    }
+
+    if (lower.startsWith('sudo')) {
+      return {
+        isCorrect: false,
+        outputLines: [
+          { id: Math.random().toString(), type: 'error', content: '[ACCESO DENEGADO] Intento de escalada de privilegios detectado.' },
+          { id: Math.random().toString(), type: 'system', content: 'Este incidente será reportado al profesor Ginés... 😉' },
+        ],
+      };
+    }
+
+    if (lower === 'konami') {
+      return {
+        isCorrect: false,
+        outputLines: [
+          { id: Math.random().toString(), type: 'success', content: '🎮 ↑ ↑ ↓ ↓ ← → ← → B A : ¡30 VIDAS EXTRA DESBLOQUEADAS!' },
+          { id: Math.random().toString(), type: 'output', content: 'Eres un auténtico gamer de la vieja escuela.' },
+        ],
+      };
+    }
+
+    if (lower === 'hack') {
+      return {
+        isCorrect: false,
+        outputLines: [
+          { id: Math.random().toString(), type: 'system', content: 'Inyectando payload en mainframe IES Benigaslo...' },
+          { id: Math.random().toString(), type: 'output', content: 'FIREWALL STATUS: [BYPASS 100%] // Acceso nivel Root otorgado.' },
+          { id: Math.random().toString(), type: 'success', content: 'Tranquilo, estás en un sandbox seguro.' },
+        ],
+      };
+    }
+
+    // 3. Exercise Match Validation
     if (activeExercise) {
       const isMatch = activeExercise.validCommandPatterns.some((pattern) => {
         if (typeof pattern === 'string') {
@@ -74,7 +118,6 @@ export class TerminalSimulator {
       });
 
       if (isMatch) {
-        // Exercise solved!
         const lines: TerminalLine[] = [];
         const outputs = activeExercise.simulatedOutput.split('\n');
         outputs.forEach((out) => {
@@ -85,11 +128,10 @@ export class TerminalSimulator {
           });
         });
 
-        // Add success celebratory line
         lines.push({
           id: Math.random().toString(),
           type: 'success',
-          content: `✔ ¡CORRECTO! Reto completado. +${activeExercise.xpReward} XP ganados.`,
+          content: `✔ PROTOCOLO COMPLETADO. +${activeExercise.xpReward} XP de Cyber-Créditos sumados.`,
         });
 
         return {
@@ -101,7 +143,7 @@ export class TerminalSimulator {
       }
     }
 
-    // 3. Fallback: simulate realistic general shell behavior
+    // 4. Fallback: simulate realistic general shell behavior
     const simLines = this.generateSimulatedOutput(trimmed);
 
     return {
@@ -126,24 +168,25 @@ export class TerminalSimulator {
       switch (base) {
         case 'ls':
           if (cmd.includes('-la') || cmd.includes('-al')) {
-            addLine('total 24');
-            addLine('drwxr-xr-x 4 usuario usuario 4096 nov 16 12:00 .');
+            addLine('total 28');
+            addLine('drwxr-xr-x 5 usuario usuario 4096 nov 16 12:00 .');
             addLine('drwxr-xr-x 3 root    root    4096 nov 16 10:00 ..');
             addLine('-rw------- 1 usuario usuario  852 nov 16 11:30 .bash_history');
             addLine('-rw-r--r-- 1 usuario usuario  220 nov 16 10:00 .bash_logout');
             addLine('-rw-r--r-- 1 usuario usuario 3771 nov 16 10:00 .bashrc');
             addLine('drwxr-xr-x 2 usuario usuario 4096 nov 16 11:45 Documentos');
             addLine('drwxr-xr-x 2 usuario usuario 4096 nov 16 11:45 Descargas');
+            addLine('drwxr-xr-x 2 usuario usuario 4096 nov 16 11:45 PRUEBA');
             addLine('-rw-r--r-- 1 usuario usuario    0 nov 16 12:01 arch_tam0');
           } else {
-            addLine('Documentos  Descargas  Música  Imágenes  Vídeos  arch_tam0');
+            addLine('Documentos  Descargas  PRUEBA  Música  Imágenes  Vídeos  arch_tam0');
           }
           break;
         case 'pwd':
           addLine(this.currentDir);
           break;
         case 'whoami':
-          addLine('usuario');
+          addLine('usuario // netrunner level 3');
           break;
         case 'id':
           addLine('uid=1000(usuario) gid=1000(usuario) grupos=1000(usuario),4(adm),24(cdrom),27(sudo)');
@@ -152,14 +195,18 @@ export class TerminalSimulator {
           addLine(new Date().toString());
           break;
         case 'uname':
-          addLine('Linux ies-benigaslo 6.8.0-45-generic #45-Ubuntu SMP PREEMPT_DYNAMIC x86_64 GNU/Linux');
+          addLine('Linux benigaslo-cyberdeck 6.8.0-45-generic #45-Ubuntu SMP PREEMPT_DYNAMIC x86_64 GNU/Linux');
+          break;
+        case 'df':
+          addLine('S.ficheros     Tamaño Usados Disp Uso% Montado en\n/dev/sda1        117G    32G   80G  29% /');
           break;
         case 'help':
-          addLine('Simulador Bash Educativo IES Benigaslo v1.0');
-          addLine('Comandos disponibles: ls, cd, pwd, touch, mkdir, cp, mv, rm, chmod, grep, wc, clear, date, whoami');
+          addLine('CYBER-TERMINAL IES BENIGASLO v3.8');
+          addLine('Comandos formativos: ls, cd, pwd, touch, mkdir, cp, mv, rm, chmod, grep, wc, find, tar, df, du');
+          addLine('Comandos frikis: matrix, sudo, konami, hack');
           break;
         case 'cd':
-          addLine('(Cambio de directorio simulado)');
+          addLine('(Navegación simulada en Linux)');
           break;
         default:
           addLine(`bash: ${parts[0]}: no se encontró la orden. ¿Revisaste la sintaxis?`, 'error');
@@ -175,30 +222,33 @@ export class TerminalSimulator {
           addLine(`16/11/2026  12:00    <DIR>          .`);
           addLine(`16/11/2026  12:00    <DIR>          ..`);
           addLine(`16/11/2026  11:40    <DIR>          Documentos`);
-          addLine(`16/11/2026  11:40    <DIR>          Descargas`);
           addLine(`16/11/2026  11:40    <DIR>          Desktop`);
           addLine(`16/11/2026  12:05                 0 resumen.txt`);
           addLine(`               1 archivos              0 bytes`);
-          addLine(`               5 dirs   45.210.849.280 bytes libres`);
+          addLine(`               4 dirs   45.210.849.280 bytes libres`);
+          break;
+        case 'tree':
+          addLine(`C:\\USERS\\ALUMNO\n├───Desktop\n└───Documentos\n        resumen.txt`);
           break;
         case 'cd':
           addLine('(Navegación de ruta simulada en Windows)');
           break;
         case 'whoami':
-          addLine('ies-benigaslo\\alumno');
+          addLine('benigaslo\\alumno');
           break;
         case 'hostname':
-          addLine('PC-AULA-DAM01');
+          addLine('CYBER-RIG-DAM01');
           break;
         case 'ver':
-          addLine('Microsoft Windows [Versión 10.0.22631.4317]');
+          addLine('Microsoft Windows [Versión 10.0.22631.4317] - PowerShell 7.4');
           break;
         case 'help':
-          addLine('Simulador de Consola Windows (CMD / PowerShell) - IES Benigaslo');
-          addLine('Comandos soportados: dir, cd, mkdir, rmdir, type, echo, copy, move, ren, del, cls, whoami');
+          addLine('Simulador de Consola Windows (PowerShell / CMD) - IES Benigaslo');
+          addLine('Comandos soportados: dir, tree, cd, mkdir, rmdir, attrib, type, findstr, copy, move, ren, del');
+          addLine('Comandos frikis: matrix, hack, konami');
           break;
         default:
-          addLine(`'${parts[0]}' no se reconoce como un comando interno o externo, programa o archivo por lotes ejecutable.`, 'error');
+          addLine(`'${parts[0]}' no se reconoce como un comando interno o externo, programa o script ejecutable.`, 'error');
           break;
       }
     }

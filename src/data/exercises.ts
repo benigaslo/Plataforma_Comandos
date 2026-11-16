@@ -1,6 +1,6 @@
 import { Exercise, ExerciseModule } from '../types';
 
-export const EXERCISES: Exercise[] = [
+export const BASE_EXERCISES: Exercise[] = [
   // ==========================================
   // WINDOWS (CMD / PowerShell)
   // ==========================================
@@ -32,7 +32,7 @@ export const EXERCISES: Exercise[] = [
     xpReward: 50,
     startingDir: 'C:\\Users\\Alumno\\Desktop\\Proyecto',
     mission: 'Dentro de la carpeta Proyecto, crea un archivo vacío llamado "informe.txt".',
-    explanation: 'En Windows clásico puedes usar "type nul > archivo" o "echo. > archivo" para crear un fichero en blanco.',
+    explanation: 'En Windows puedes usar "type nul > archivo" o "echo. > archivo" para crear un fichero en blanco.',
     hint: 'Prueba: echo. > informe.txt  o  type nul > informe.txt',
     validCommandPatterns: [
       /^echo\.?\s*>\s*informe\.txt$/i,
@@ -174,7 +174,7 @@ export const EXERCISES: Exercise[] = [
     xpReward: 50,
     startingDir: 'C:\\Users\\Alumno\\Notas',
     mission: 'Muestra por pantalla el contenido del archivo "lista.txt".',
-    explanation: 'En Windows, "type" es el equivalente a "cat" de Linux para ver ficheros de texto.',
+    explanation: 'En Windows, "type" es el comando clásico para ver ficheros de texto.',
     hint: 'Escribe: type lista.txt',
     validCommandPatterns: [
       /^type\s+lista\.txt$/i,
@@ -199,7 +199,7 @@ export const EXERCISES: Exercise[] = [
       /^dir\s+\/ah$/i,
       /^get-childitem\s+-force$/i
     ],
-    simulatedOutput: 'C:\\Users\\Alumno> dir /a\n Directorio de C:\\Users\\Alumno\n\n16/11/2026  12:00    <DIR>          .\n16/11/2026  12:00    <DIR>          ..\n16/11/2026  10:15    <DIR>   [H]    .config\n16/11/2026  09:30             1.024 NTUSER.DAT\n16/11/2026  11:45    <DIR>          Documentos\n16/11/2026  11:45    <DIR>          Desktop',
+    simulatedOutput: 'C:\\Users\\Alumno> dir /a\n Directorio de C:\\Users\\Alumno\n\n16/11/2026  12:00    <DIR>          .\n16/11/2026  12:00    <DIR>          ..\n16/11/2026  10:15    <DIR>   [H]    .config\n16/11/2026  09:30             1.024 NTUSER.DAT\n16/11/2026  11:45    <DIR>          Documentos',
   },
   {
     id: 'win-17',
@@ -217,6 +217,75 @@ export const EXERCISES: Exercise[] = [
       /^md\s+empresa\\recursoshumanos\\contratos$/i
     ],
     simulatedOutput: 'C:\\Users\\Alumno> mkdir Empresa\\RecursosHumanos\\Contratos\n(Estructura anidada creada: Empresa -> RecursosHumanos -> Contratos)',
+  },
+  // NUEVOS RETOS WINDOWS EXTRAÍDOS DE UD3 (Atributos, Árbol y Tuberías)
+  {
+    id: 'win-tree-01',
+    title: 'Ver árbol de directorios con archivos',
+    os: 'windows',
+    module: 'Windows - Inspección y Atributos',
+    difficulty: 'fácil',
+    xpReward: 65,
+    startingDir: 'C:\\Users\\Alumno\\Empresa',
+    mission: 'Visualiza la estructura gráfica en árbol de la carpeta actual incluyendo los nombres de los archivos.',
+    explanation: 'El comando "tree" dibuja el árbol de carpetas. Con el parámetro /f muestra también los archivos en cada rama.',
+    hint: 'Escribe: tree /f',
+    validCommandPatterns: [
+      /^tree\s+\/f$/i,
+      /^tree$/i
+    ],
+    simulatedOutput: 'C:\\Users\\Alumno\\Empresa> tree /f\nEstructura de carpetas para el volumen OS\nNúmero de serie del volumen: 84B2-79A1\nC:\\USERS\\ALUMNO\\EMPRESA\n├───Finanzas\n│   └───Informes\n│           balance_2026.xlsx\n└───RecursosHumanos\n    └───Contratos\n            contrato_dam.pdf',
+  },
+  {
+    id: 'win-attrib-01',
+    title: 'Ocultar archivo con attrib',
+    os: 'windows',
+    module: 'Windows - Inspección y Atributos',
+    difficulty: 'medio',
+    xpReward: 75,
+    startingDir: 'C:\\Users\\Alumno\\Documentos',
+    mission: 'Asigna el atributo de archivo oculto al archivo "claves.txt" usando el comando attrib.',
+    explanation: 'En Windows, "attrib +h archivo" añade el atributo Hidden (oculto). Para quitarlo se usaría "-h".',
+    hint: 'Escribe: attrib +h claves.txt',
+    validCommandPatterns: [
+      /^attrib\s+\+h\s+claves\.txt$/i,
+      /^attrib\s+claves\.txt\s+\+h$/i
+    ],
+    simulatedOutput: 'C:\\Users\\Alumno\\Documentos> attrib +h claves.txt\n(Atributo [H] Oculto asignado a claves.txt)',
+  },
+  {
+    id: 'win-pipe-01',
+    title: 'Filtrar texto en Windows con findstr',
+    os: 'windows',
+    module: 'Windows - Redirecciones y Filtros',
+    difficulty: 'medio',
+    xpReward: 80,
+    startingDir: 'C:\\Users\\Alumno',
+    mission: 'Muestra por pantalla únicamente las líneas que contengan la palabra "ERROR" dentro del archivo "registro.log".',
+    explanation: 'findstr es la herramienta nativa de Windows equivalente a grep para filtrar texto.',
+    hint: 'Usa: findstr "ERROR" registro.log  o  type registro.log | findstr "ERROR"',
+    validCommandPatterns: [
+      /^findstr\s+["']?ERROR["']?\s+registro\.log$/i,
+      /^type\s+registro\.log\s+\|\s+findstr\s+["']?ERROR["']?$/i
+    ],
+    simulatedOutput: 'C:\\Users\\Alumno> findstr "ERROR" registro.log\n[2026-11-16 10:14:02] ERROR: Fallo de autenticación en puerto 22\n[2026-11-16 11:05:43] ERROR: Disco secundario no montado',
+  },
+  {
+    id: 'win-redir-01',
+    title: 'Redirigir listado limpio a un archivo',
+    os: 'windows',
+    module: 'Windows - Redirecciones y Filtros',
+    difficulty: 'medio',
+    xpReward: 75,
+    startingDir: 'C:\\Users\\Alumno\\Desktop',
+    mission: 'Genera una lista en formato simple (/b) de todos los archivos y guárdala en un fichero llamado "catalogo.txt".',
+    explanation: 'El parámetro /b de dir omite encabezados y resúmenes. Con > se canaliza hacia un nuevo archivo.',
+    hint: 'Escribe: dir /b > catalogo.txt',
+    validCommandPatterns: [
+      /^dir\s+\/b\s*>\s*catalogo\.txt$/i,
+      /^dir\s*>\s*catalogo\.txt$/i
+    ],
+    simulatedOutput: 'C:\\Users\\Alumno\\Desktop> dir /b > catalogo.txt\n(Salida redirigida a catalogo.txt)',
   },
 
   // ==========================================
@@ -456,10 +525,107 @@ export const EXERCISES: Exercise[] = [
     simulatedOutput: 'usuario@ies-benigaslo:~$ chmod a-w segura\n(Permisos actualizados: dr-xr-xr-x 2 usuario usuario segura)',
   },
   {
+    id: 'linux-chmod-octal',
+    title: 'Permisos en notación octal (755)',
+    os: 'linux',
+    module: 'Linux - Enlaces y Permisos',
+    difficulty: 'medio',
+    xpReward: 85,
+    startingDir: '/home/usuario',
+    mission: 'Asigna permisos 755 (lectura, escritura y ejecución para el dueño; lectura y ejecución para los demás) al script "deploy.sh".',
+    explanation: '7 = rwx (4+2+1), 5 = r-x (4+0+1). Es el permiso estándar de ejecutables y scripts en Linux.',
+    hint: 'Escribe: chmod 755 deploy.sh',
+    validCommandPatterns: [
+      /^chmod\s+755\s+deploy\.sh$/
+    ],
+    simulatedOutput: 'usuario@ies-benigaslo:~$ chmod 755 deploy.sh\n-rwxr-xr-x 1 usuario usuario 1240 nov 16 12:00 deploy.sh',
+  },
+  // NUEVOS RETOS LINUX EXTRAÍDOS DE UD3 (Pipes, Find, Almacenamiento, Tar)
+  {
+    id: 'linux-pipe-01',
+    title: 'Tuberías (Pipes): Conteo de procesos o archivos',
+    os: 'linux',
+    module: 'Linux - Tuberías y Redirecciones',
+    difficulty: 'medio',
+    xpReward: 80,
+    startingDir: '/home/usuario',
+    mission: 'Conecta mediante una tubería (|) el listado de archivos de /etc con el comando wc para contar cuántas entradas hay.',
+    explanation: 'La barra vertical (|) canaliza la salida estándar del primer comando como entrada del segundo.',
+    hint: 'Escribe: ls /etc | wc -l',
+    validCommandPatterns: [
+      /^ls\s+\/etc\/?\s*\|\s*wc\s+-l$/
+    ],
+    simulatedOutput: 'usuario@ies-benigaslo:~$ ls /etc | wc -l\n184',
+  },
+  {
+    id: 'linux-find-01',
+    title: 'Búsqueda por nombre con find',
+    os: 'linux',
+    module: 'Linux - Búsqueda y Localización',
+    difficulty: 'medio',
+    xpReward: 80,
+    startingDir: '/home/usuario',
+    mission: 'Busca dentro de /var todos los archivos que terminen con la extensión ".log".',
+    explanation: '"find ruta -name patron" busca de forma recursiva a partir del directorio especificado.',
+    hint: 'Usa: find /var -name "*.log"',
+    validCommandPatterns: [
+      /^find\s+\/var\/?\s+-name\s+["']?\*\.log["']?$/
+    ],
+    simulatedOutput: 'usuario@ies-benigaslo:~$ find /var -name "*.log"\n/var/log/dpkg.log\n/var/log/auth.log\n/var/log/syslog\n/var/log/boot.log\n/var/log/nginx/access.log',
+  },
+  {
+    id: 'linux-disk-01',
+    title: 'Inspeccionar espacio libre en disco',
+    os: 'linux',
+    module: 'Linux - Almacenamiento y Sistema',
+    difficulty: 'fácil',
+    xpReward: 60,
+    startingDir: '/home/usuario',
+    mission: 'Comprueba el espacio libre y ocupado en todos los sistemas de archivos montados en formato legible para humanos.',
+    explanation: 'df (disk free) con la opción -h (human readable) muestra los tamaños en MB y GB.',
+    hint: 'Escribe: df -h',
+    validCommandPatterns: [
+      /^df\s+-h$/
+    ],
+    simulatedOutput: 'usuario@ies-benigaslo:~$ df -h\nS.ficheros     Tamaño Usados Disp Uso% Montado en\nudev             3,9G      0  3,9G   0% /dev\ntmpfs            792M   1,6M  790M   1% /run\n/dev/sda1        117G    32G   80G  29% /\ntmpfs            3,9G      0  3,9G   0% /dev/shm',
+  },
+  {
+    id: 'linux-disk-02',
+    title: 'Comprobar tamaño ocupado por una carpeta (du)',
+    os: 'linux',
+    module: 'Linux - Almacenamiento y Sistema',
+    difficulty: 'medio',
+    xpReward: 70,
+    startingDir: '/home/usuario',
+    mission: 'Calcula el tamaño total resumido (-sh) que ocupa la carpeta /var/log en disco.',
+    explanation: 'du (disk usage) con -s (summary) y -h (human readable) muestra la ocupación total sin listar cada subfichero.',
+    hint: 'Escribe: du -sh /var/log',
+    validCommandPatterns: [
+      /^du\s+-sh\s+\/var\/log\/?$/
+    ],
+    simulatedOutput: 'usuario@ies-benigaslo:~$ du -sh /var/log\n428M\t/var/log',
+  },
+  {
+    id: 'linux-tar-01',
+    title: 'Empaquetar archivos con tar',
+    os: 'linux',
+    module: 'Linux - Compresión y Empaquetado',
+    difficulty: 'medio',
+    xpReward: 85,
+    startingDir: '/home/usuario',
+    mission: 'Crea un paquete llamado "copia.tar" que contenga todo el directorio "Documentos".',
+    explanation: 'tar -cvf archivo.tar directorio (c = create, v = verbose, f = file).',
+    hint: 'Escribe: tar -cvf copia.tar Documentos',
+    validCommandPatterns: [
+      /^tar\s+(-cvf|cvf)\s+copia\.tar\s+Documentos\/?$/
+    ],
+    simulatedOutput: 'usuario@ies-benigaslo:~$ tar -cvf copia.tar Documentos\nDocumentos/\nDocumentos/informe.txt\nDocumentos/presupuesto.pdf\nDocumentos/notas.md\n(Paquete copia.tar creado correctamente)',
+  },
+  {
     id: 'linux-grep-01',
     title: 'Filtrado de texto con grep',
     os: 'linux',
-    module: 'Linux - Filtros y Tuberías',
+    module: 'Linux - Tuberías y Redirecciones',
     difficulty: 'medio',
     xpReward: 70,
     startingDir: '/home/usuario',
@@ -475,7 +641,7 @@ export const EXERCISES: Exercise[] = [
     id: 'linux-wc-01',
     title: 'Conteo de líneas con wc',
     os: 'linux',
-    module: 'Linux - Filtros y Tuberías',
+    module: 'Linux - Tuberías y Redirecciones',
     difficulty: 'fácil',
     xpReward: 60,
     startingDir: '/home/usuario',
@@ -489,54 +655,64 @@ export const EXERCISES: Exercise[] = [
   }
 ];
 
-export const MODULES: ExerciseModule[] = [
-  {
-    id: 'win-mod-1',
-    name: 'Windows: Navegación y Estructura',
-    os: 'windows',
-    description: 'Comandos esenciales de consola CMD/PowerShell para moverte entre carpetas y crearlas.',
-    exercises: EXERCISES.filter((e) => e.os === 'windows' && e.module.includes('Creación y Navegación')),
-  },
-  {
-    id: 'win-mod-2',
-    name: 'Windows: Gestión de Archivos',
-    os: 'windows',
-    description: 'Creación de ficheros, renombrado, copia, movimiento y visualización de contenido.',
-    exercises: EXERCISES.filter((e) => e.os === 'windows' && e.module.includes('Archivos y Documentos')),
-  },
-  {
-    id: 'win-mod-3',
-    name: 'Windows: Eliminación y Limpieza',
-    os: 'windows',
-    description: 'Borrado seguro de ficheros, comodines y eliminación de árboles de directorios.',
-    exercises: EXERCISES.filter((e) => e.os === 'windows' && e.module.includes('Eliminación')),
-  },
-  {
-    id: 'linux-mod-1',
-    name: 'Linux: Archivos y Navegación',
-    os: 'linux',
-    description: 'Comandos fundamentales de la shell de Bash: ls, cd, pwd, touch, mkdir, cp y mv.',
-    exercises: EXERCISES.filter((e) => e.os === 'linux' && e.module.includes('Archivos y Navegación')),
-  },
-  {
-    id: 'linux-mod-2',
-    name: 'Linux: Comodines y Filtros de Búsqueda',
-    os: 'linux',
-    description: 'Uso de asteriscos (*), interrogantes (?), rangos ([]) y ordenación.',
-    exercises: EXERCISES.filter((e) => e.os === 'linux' && e.module.includes('Filtros y Comodines')),
-  },
-  {
-    id: 'linux-mod-3',
-    name: 'Linux: Enlaces y Permisos (chmod/ln)',
-    os: 'linux',
-    description: 'Sistemas de protección, permisos de lectura/escritura/ejecución y enlaces blandos.',
-    exercises: EXERCISES.filter((e) => e.os === 'linux' && e.module.includes('Enlaces y Permisos')),
-  },
-  {
-    id: 'linux-mod-4',
-    name: 'Linux: Tuberías y Procesamiento (grep/wc)',
-    os: 'linux',
-    description: 'Búsqueda avanzada de texto con expresiones regulares y conteo de datos.',
-    exercises: EXERCISES.filter((e) => e.os === 'linux' && e.module.includes('Filtros y Tuberías')),
-  },
-];
+// Helper to get custom exercises created dynamically by the tutor
+export function getStoredCustomExercises(): Exercise[] {
+  if (typeof window === 'undefined') return [];
+  const saved = localStorage.getItem('comandquest_custom_exercises');
+  if (saved) {
+    try {
+      const parsed: Exercise[] = JSON.parse(saved);
+      // Re-hydrate regex objects if string
+      return parsed.map((e) => ({
+        ...e,
+        validCommandPatterns: e.validCommandPatterns.map((p) => {
+          if (typeof p === 'string' && p.startsWith('/') && p.endsWith('/')) {
+            return new RegExp(p.slice(1, -1), 'i');
+          }
+          return p;
+        }),
+      }));
+    } catch {
+      // fallback
+    }
+  }
+  return [];
+}
+
+export function saveCustomExercise(exercise: Exercise): Exercise[] {
+  const current = getStoredCustomExercises().filter((e) => e.id !== exercise.id);
+  const updated = [...current, exercise];
+  localStorage.setItem('comandquest_custom_exercises', JSON.stringify(updated));
+  return updated;
+}
+
+export function deleteCustomExercise(id: string): Exercise[] {
+  const current = getStoredCustomExercises().filter((e) => e.id !== id);
+  localStorage.setItem('comandquest_custom_exercises', JSON.stringify(current));
+  return current;
+}
+
+export function getAllExercises(): Exercise[] {
+  const custom = getStoredCustomExercises();
+  return [...BASE_EXERCISES, ...custom];
+}
+
+export function getModulesForExercises(allExercises: Exercise[]): ExerciseModule[] {
+  const modulesMap = new Map<string, ExerciseModule>();
+
+  allExercises.forEach((ex) => {
+    const key = `${ex.os}-${ex.module}`;
+    if (!modulesMap.has(key)) {
+      modulesMap.set(key, {
+        id: key.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        name: ex.module,
+        os: ex.os,
+        description: `Módulo formativo: ${ex.module}`,
+        exercises: [],
+      });
+    }
+    modulesMap.get(key)!.exercises.push(ex);
+  });
+
+  return Array.from(modulesMap.values());
+}

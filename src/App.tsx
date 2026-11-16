@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { UserProfile, OperatingSystem, Exercise } from './types';
-import { EXERCISES, MODULES } from './data/exercises';
+import { getAllExercises, getModulesForExercises } from './data/exercises';
 import { BADGES } from './data/badges';
 import {
   getCurrentUserSession,
@@ -21,8 +21,14 @@ import { LevelUpModal } from './components/LevelUpModal';
 export const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [currentOS, setCurrentOS] = useState<OperatingSystem>('linux');
+
+  // Dynamic exercise catalog (base + custom created by teacher)
+  const [exercises, setExercises] = useState<Exercise[]>(() => getAllExercises());
+  const [modules, setModules] = useState(() => getModulesForExercises(getAllExercises()));
+
   const [activeExercise, setActiveExercise] = useState<Exercise>(() => {
-    return EXERCISES.find((e) => e.os === 'linux') || EXERCISES[0];
+    const all = getAllExercises();
+    return all.find((e) => e.os === 'linux') || all[0];
   });
 
   // Modals state
@@ -32,6 +38,16 @@ export const App: React.FC = () => {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [levelUpData, setLevelUpData] = useState<{ newLevel: number; newXp: number } | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(() => sounds.isEnabled());
+  const [crtMode, setCrtMode] = useState<boolean>(() => {
+    return localStorage.getItem('comandquest_crt') === 'true';
+  });
+
+  // Reload dynamic exercises
+  const refreshExercises = useCallback(() => {
+    const updated = getAllExercises();
+    setExercises(updated);
+    setModules(getModulesForExercises(updated));
+  }, []);
 
   // Load user session on mount
   useEffect(() => {
@@ -43,13 +59,13 @@ export const App: React.FC = () => {
   // When OS changes, select first exercise of that OS
   const handleSelectOS = (os: OperatingSystem) => {
     setCurrentOS(os);
-    const firstOfOs = EXERCISES.find((e) => e.os === os);
+    const firstOfOs = exercises.find((e) => e.os === os);
     if (firstOfOs) {
       setActiveExercise(firstOfOs);
     }
   };
 
-  const currentOsExercises = EXERCISES.filter((e) => e.os === currentOS);
+  const currentOsExercises = exercises.filter((e) => e.os === currentOS);
   const currentIndex = currentOsExercises.findIndex((e) => e.id === activeExercise.id);
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < currentOsExercises.length - 1;
@@ -96,6 +112,12 @@ export const App: React.FC = () => {
     setSoundEnabled(newState);
   };
 
+  const handleToggleCrt = () => {
+    const next = !crtMode;
+    setCrtMode(next);
+    localStorage.setItem('comandquest_crt', String(next));
+  };
+
   const handleToggleRole = () => {
     if (!user) return;
     const newRole = user.role === 'student' ? 'teacher' : 'student';
@@ -134,7 +156,7 @@ export const App: React.FC = () => {
         <aside className="lg:col-span-4 h-[400px] lg:h-[calc(100vh-95px)]">
           <ExerciseList
             os={currentOS}
-            modules={MODULES}
+            modules={modules}
             activeExercise={activeExercise}
             completedIds={user.completed_exercises}
             onSelectExercise={(ex) => setActiveExercise(ex)}
@@ -161,6 +183,8 @@ export const App: React.FC = () => {
               os={currentOS}
               activeExercise={activeExercise}
               onCommandSuccess={handleCommandSuccess}
+              crtMode={crtMode}
+              onToggleCrt={handleToggleCrt}
             />
           </div>
         </section>
@@ -182,6 +206,7 @@ export const App: React.FC = () => {
       <TeacherPanel
         isOpen={isTeacherPanelOpen}
         onClose={() => setIsTeacherPanelOpen(false)}
+        onExercisesUpdated={refreshExercises}
       />
 
       <AuthModal

@@ -29,6 +29,8 @@ export interface Exercise {
   validCommandPatterns: (string | RegExp)[];
   simulatedOutput: string;
   secondaryValidCommands?: string[];
+  isCustom?: boolean; // created by teacher
+  createdBy?: string;
 }
 
 export interface ExerciseModule {

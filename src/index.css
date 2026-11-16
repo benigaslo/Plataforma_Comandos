@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply antialiased bg-[#090d13] text-gray-100;
+    @apply antialiased bg-[#070b14] text-gray-100;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
@@ -24,10 +24,51 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(71, 85, 105, 0.5);
+  background: rgba(34, 211, 238, 0.4);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.8);
+  background: rgba(34, 211, 238, 0.8);
+}
+
+/* MODO FRIKI: CRT SCANLINES & RETRO MATRIX MONITOR */
+.crt-mode {
+  position: relative;
+  text-shadow: 0 0 6px #00ff66;
+}
+
+.crt-mode::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
+  z-index: 20;
+  background-size: 100% 3px, 3px 100%;
+  pointer-events: none;
+}
+
+.crt-mode::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: radial-gradient(circle, transparent 65%, rgba(0, 0, 0, 0.5) 100%);
+  pointer-events: none;
+  z-index: 21;
+}
+
+/* Neon glow animations */
+@keyframes neonPulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(34, 211, 238, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(34, 211, 238, 0.6);
+  }
+}
+
+.neon-glow {
+  animation: neonPulse 3s infinite;
 }
