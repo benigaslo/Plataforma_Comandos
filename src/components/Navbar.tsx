@@ -116,7 +116,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     : 'bg-cyan-950 text-cyan-400 border-cyan-700/60'
                 }`}
               >
-                1º DAM & 2º SMR
+                1º DAM • 1º DAW • 2º SMR
               </span>
             </div>
             <p className={`text-[11px] font-mono flex items-center gap-1.5 ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
@@ -289,12 +289,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold border mt-0.5 ${
                   user.role === 'teacher'
                     ? 'bg-amber-950/80 text-amber-300 border-amber-800'
+                    : user.course === '1DAW'
+                    ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800'
                     : user.course === '2SMR'
                     ? 'bg-purple-950/80 text-purple-300 border-purple-800'
                     : 'bg-blue-950/80 text-blue-300 border-blue-800'
                 }`}
               >
-                {user.role === 'teacher' ? 'Docente' : user.course === '2SMR' ? '2º SMR' : '1º DAM'}
+                {user.role === 'teacher'
+                  ? 'Docente'
+                  : user.course === '1DAW'
+                  ? '1º DAW'
+                  : user.course === '2SMR'
+                  ? '2º SMR'
+                  : '1º DAM'}
               </span>
             </div>
           </div>
@@ -391,7 +399,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="flex flex-col text-left leading-tight">
               <span className="font-bold truncate max-w-[85px] sm:max-w-[120px]">{user.name}</span>
               <span className="text-[9px] opacity-75 font-mono">
-                {user.role === 'teacher' ? 'Docente' : user.course === '2SMR' ? '2º SMR' : '1º DAM'}
+                {user.role === 'teacher'
+                  ? 'Docente'
+                  : user.course === '1DAW'
+                  ? '1º DAW'
+                  : user.course === '2SMR'
+                  ? '2º SMR'
+                  : '1º DAM'}
               </span>
             </div>
             <LogIn className="w-3.5 h-3.5 opacity-60 ml-0.5" />

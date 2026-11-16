@@ -208,7 +208,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div className="truncate">
                 <div className="font-bold truncate">{currentUser.name}</div>
                 <div className={`text-[10px] font-mono ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
-                  {currentUser.role === 'teacher' ? 'Docente' : currentUser.course === '2SMR' ? '2º SMR' : '1º DAM'} • {currentUser.xp} XP
+                  {currentUser.role === 'teacher'
+                    ? 'Docente'
+                    : currentUser.course === '1DAW'
+                    ? '1º DAW'
+                    : currentUser.course === '2SMR'
+                    ? '2º SMR'
+                    : '1º DAM'} • {currentUser.xp} XP
                 </div>
               </div>
             </div>
@@ -347,7 +353,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* TAB 2: SELECTOR RÁPIDO DE ALUMNO EN CLASE */}
         {tab === 'quickselect' && (
           <form onSubmit={handleQuickLogin} className="space-y-3">
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => {
@@ -364,6 +370,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               >
                 <GraduationCap className="w-3.5 h-3.5" />
                 <span>1º DAM</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sounds.playKey();
+                  setSelectedCourse('1DAW');
+                }}
+                className={`py-1.5 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1 ${
+                  selectedCourse === '1DAW'
+                    ? 'bg-emerald-600 text-white border-emerald-500'
+                    : isLight
+                    ? 'bg-slate-100 border-slate-300 text-slate-700'
+                    : 'bg-gray-950 border-gray-800 text-gray-400'
+                }`}
+              >
+                <GraduationCap className="w-3.5 h-3.5" />
+                <span>1º DAW</span>
               </button>
 
               <button

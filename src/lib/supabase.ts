@@ -460,7 +460,10 @@ export async function createStudentAccount(
     }
   }
 
-  const roleText = role === 'teacher' ? 'Docente' : `Alumno de ${course === '1DAM' ? '1º DAM' : '2º SMR'}`;
+  const roleText =
+    role === 'teacher'
+      ? 'Docente'
+      : `Alumno de ${course === '1DAM' ? '1º DAM' : course === '1DAW' ? '1º DAW' : '2º SMR'}`;
   return {
     success: true,
     message: `${roleText} "${name}" registrado correctamente. Ya puede iniciar sesión.`,
@@ -487,7 +490,14 @@ export async function bulkCreateStudents(
       const email = parts[1];
       const password = parts[2] || 'ies' + Math.floor(1000 + Math.random() * 9000);
       const courseStr = parts[3]?.toUpperCase();
-      const course: CourseGroup = courseStr === '2SMR' || courseStr === 'SMR' ? '2SMR' : defaultCourse;
+      const course: CourseGroup =
+        courseStr === '1DAW' || courseStr === 'DAW'
+          ? '1DAW'
+          : courseStr === '2SMR' || courseStr === 'SMR'
+          ? '2SMR'
+          : courseStr === '1DAM' || courseStr === 'DAM'
+          ? '1DAM'
+          : defaultCourse;
       const roleStr = parts[4]?.toLowerCase();
       const role: UserRole = roleStr === 'teacher' || roleStr === 'docente' || roleStr === 'profesor' ? 'teacher' : defaultRole;
 

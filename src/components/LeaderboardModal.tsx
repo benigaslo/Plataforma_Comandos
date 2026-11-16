@@ -51,6 +51,28 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   const currentUserEntry = entries.find((e) => e.isCurrentUser || e.id === currentUserId);
   const nextRival = currentUserEntry && currentUserEntry.rank > 1 ? entries[currentUserEntry.rank - 2] : null;
 
+  const renderCourseBadge = (course?: CourseGroup) => {
+    if (course === '1DAW') {
+      return (
+        <span className="text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold border bg-emerald-950 text-emerald-300 border-emerald-800">
+          1º DAW
+        </span>
+      );
+    }
+    if (course === '2SMR') {
+      return (
+        <span className="text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold border bg-purple-950 text-purple-300 border-purple-800">
+          2º SMR
+        </span>
+      );
+    }
+    return (
+      <span className="text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold border bg-blue-950 text-blue-300 border-blue-800">
+        1º DAM
+      </span>
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
       <div
@@ -164,7 +186,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               }`}
             >
               <Users className="w-3.5 h-3.5" />
-              <span>Todos (DAM & SMR)</span>
+              <span>Todos (DAM, DAW & SMR)</span>
             </button>
 
             <button
@@ -186,6 +208,27 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
             >
               <GraduationCap className="w-3.5 h-3.5" />
               <span>1º DAM</span>
+            </button>
+
+            <button
+              onClick={() => {
+                sounds.playKey();
+                setSelectedCourse('1DAW');
+              }}
+              className={`px-3 py-1.5 rounded-xl transition flex items-center space-x-1.5 ${
+                selectedCourse === '1DAW'
+                  ? isLight
+                    ? 'bg-emerald-600 text-white shadow'
+                    : isMatrix
+                    ? 'bg-[#00ff66] text-black shadow-md shadow-[#00ff66]/40 font-black'
+                    : 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20 font-black'
+                  : isLight
+                  ? 'text-slate-600 hover:bg-slate-200'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+              <span>1º DAW</span>
             </button>
 
             <button
@@ -238,7 +281,13 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                   Estás en la posición{' '}
                   <strong className={isLight ? 'text-blue-700' : 'text-cyan-300'}>#{currentUserEntry.rank}</strong> del grupo{' '}
                   <span className="font-bold font-mono">
-                    {selectedCourse === 'TODOS' ? 'General' : selectedCourse === '1DAM' ? '1º DAM' : '2º SMR'}
+                    {selectedCourse === 'TODOS'
+                      ? 'General'
+                      : selectedCourse === '1DAM'
+                      ? '1º DAM'
+                      : selectedCourse === '1DAW'
+                      ? '1º DAW'
+                      : '2º SMR'}
                   </span>
                   . Te faltan solo{' '}
                   <strong className="text-amber-500 font-mono">+{nextRival.xp - currentUserEntry.xp} XP</strong> para adelantar a{' '}
@@ -285,15 +334,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                     {top3[1].name}
                   </div>
                   <div className="flex items-center justify-center gap-1">
-                    <span
-                      className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold border ${
-                        top3[1].course === '1DAM'
-                          ? 'bg-blue-950 text-blue-300 border-blue-800'
-                          : 'bg-purple-950 text-purple-300 border-purple-800'
-                      }`}
-                    >
-                      {top3[1].course === '1DAM' ? '1º DAM' : '2º SMR'}
-                    </span>
+                    {renderCourseBadge(top3[1].course)}
                   </div>
                   <div
                     className={`text-[10px] font-mono font-semibold ${
@@ -342,15 +383,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                     {top3[0].name}
                   </div>
                   <div className="flex items-center justify-center gap-1">
-                    <span
-                      className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold border ${
-                        top3[0].course === '1DAM'
-                          ? 'bg-blue-950 text-blue-300 border-blue-800'
-                          : 'bg-purple-950 text-purple-300 border-purple-800'
-                      }`}
-                    >
-                      {top3[0].course === '1DAM' ? '1º DAM' : '2º SMR'}
-                    </span>
+                    {renderCourseBadge(top3[0].course)}
                   </div>
                   <div className="text-[11px] text-amber-400 font-mono font-bold">{top3[0].rankTitle}</div>
                   <div className="text-xl font-black text-amber-400 font-mono flex items-center justify-center gap-1">
@@ -398,15 +431,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                     {top3[2].name}
                   </div>
                   <div className="flex items-center justify-center gap-1">
-                    <span
-                      className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold border ${
-                        top3[2].course === '1DAM'
-                          ? 'bg-blue-950 text-blue-300 border-blue-800'
-                          : 'bg-purple-950 text-purple-300 border-purple-800'
-                      }`}
-                    >
-                      {top3[2].course === '1DAM' ? '1º DAM' : '2º SMR'}
-                    </span>
+                    {renderCourseBadge(top3[2].course)}
                   </div>
                   <div
                     className={`text-[10px] font-mono font-semibold ${
@@ -496,15 +521,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       <div>
                         <div className="font-bold flex items-center gap-2">
                           <span className={isLight ? 'text-slate-900' : 'text-white'}>{item.name}</span>
-                          <span
-                            className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold border ${
-                              item.course === '1DAM'
-                                ? 'bg-blue-950 text-blue-300 border-blue-800'
-                                : 'bg-purple-950 text-purple-300 border-purple-800'
-                            }`}
-                          >
-                            {item.course === '1DAM' ? '1º DAM' : '2º SMR'}
-                          </span>
+                          {renderCourseBadge(item.course)}
                           {isUser && (
                             <span
                               className={`text-[9px] uppercase px-1.5 py-0.2 rounded font-extrabold font-mono ${

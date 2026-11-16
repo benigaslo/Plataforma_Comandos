@@ -49,7 +49,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
   const [activeTab, setActiveTab] = useState<'monitoring' | 'management' | 'exercises'>('monitoring');
   const [students, setStudents] = useState<StudentProgressRow[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [courseFilter, setCourseFilter] = useState<'TODOS' | '1DAM' | '2SMR' | 'TEACHERS'>('TODOS');
+  const [courseFilter, setCourseFilter] = useState<'TODOS' | '1DAM' | '1DAW' | '2SMR' | 'TEACHERS'>('TODOS');
   const [selectedStudent, setSelectedStudent] = useState<StudentProgressRow | null>(null);
 
   // Form single user
@@ -106,6 +106,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
     if (!matchesSearch) return false;
 
     if (courseFilter === '1DAM') return st.course === '1DAM' && st.role === 'student';
+    if (courseFilter === '1DAW') return st.course === '1DAW' && st.role === 'student';
     if (courseFilter === '2SMR') return st.course === '2SMR' && st.role === 'student';
     if (courseFilter === 'TEACHERS') return st.role === 'teacher';
     return true; // TODOS
@@ -168,7 +169,9 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
 
     if (createdCount > 0) {
       sounds.playSuccess();
-      let msg = `✔ Se han registrado ${createdCount} usuarios correctamente en ${bulkCourse === '1DAM' ? '1º DAM' : '2º SMR'}.`;
+      let msg = `✔ Se han registrado ${createdCount} usuarios correctamente en ${
+        bulkCourse === '1DAM' ? '1º DAM' : bulkCourse === '1DAW' ? '1º DAW' : '2º SMR'
+      }.`;
       if (errors.length > 0) {
         msg += ` (Ocurrieron ${errors.length} avisos: ${errors.slice(0, 2).join('; ')})`;
       }
@@ -320,6 +323,9 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                 <div className="flex space-x-1">
                   <span className="text-[10px] bg-blue-950 text-blue-300 px-2 py-0.5 rounded-full border border-blue-800 font-mono font-bold">
                     1º DAM
+                  </span>
+                  <span className="text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-800 font-mono font-bold">
+                    1º DAW
                   </span>
                   <span className="text-[10px] bg-purple-950 text-purple-300 px-2 py-0.5 rounded-full border border-purple-800 font-mono font-bold">
                     2º SMR
@@ -578,6 +584,18 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                     1º DAM
                   </button>
                   <button
+                    onClick={() => setCourseFilter('1DAW')}
+                    className={`px-2.5 py-1 rounded-lg transition ${
+                      courseFilter === '1DAW'
+                        ? 'bg-emerald-600 text-white font-bold shadow'
+                        : isLight
+                        ? 'text-slate-600 hover:bg-slate-200'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    1º DAW
+                  </button>
+                  <button
                     onClick={() => setCourseFilter('2SMR')}
                     className={`px-2.5 py-1 rounded-lg transition ${
                       courseFilter === '2SMR'
@@ -685,10 +703,18 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                                     ? 'bg-amber-950 text-amber-300 border-amber-800'
                                     : st.course === '1DAM'
                                     ? 'bg-blue-950 text-blue-300 border-blue-800'
+                                    : st.course === '1DAW'
+                                    ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
                                     : 'bg-purple-950 text-purple-300 border-purple-800'
                                 }`}
                               >
-                                {st.role === 'teacher' ? 'Docente' : st.course === '1DAM' ? '1º DAM' : '2º SMR'}
+                                {st.role === 'teacher'
+                                  ? 'Docente'
+                                  : st.course === '1DAM'
+                                  ? '1º DAM'
+                                  : st.course === '1DAW'
+                                  ? '1º DAW'
+                                  : '2º SMR'}
                               </span>
                             </td>
 
@@ -826,6 +852,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                         }`}
                       >
                         <option value="1DAM">1º DAM (Multiplataforma)</option>
+                        <option value="1DAW">1º DAW (Web)</option>
                         <option value="2SMR">2º SMR (Microinformáticos)</option>
                       </select>
                     </div>
@@ -944,6 +971,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                       }`}
                     >
                       <option value="1DAM">1º DAM</option>
+                      <option value="1DAW">1º DAW</option>
                       <option value="2SMR">2º SMR</option>
                     </select>
                   </div>
@@ -979,7 +1007,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                   disabled={isSubmitting || !bulkText.trim()}
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition"
                 >
-                  Importar lista para {bulkCourse === '1DAM' ? '1º DAM' : '2º SMR'}
+                  Importar lista para {bulkCourse === '1DAM' ? '1º DAM' : bulkCourse === '1DAW' ? '1º DAW' : '2º SMR'}
                 </button>
               </div>
 
@@ -1032,6 +1060,8 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                                   ? 'bg-amber-950 text-amber-300 border border-amber-800'
                                   : st.course === '1DAM'
                                   ? 'bg-blue-950 text-blue-300 border border-blue-800'
+                                  : st.course === '1DAW'
+                                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
                                   : 'bg-purple-950 text-purple-300 border border-purple-800'
                               }`}
                             >
@@ -1134,8 +1164,9 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                             : 'bg-gray-900 border-gray-700 text-white'
                         }`}
                       >
-                        <option value="TODOS">Ambos (1º DAM & 2º SMR)</option>
+                        <option value="TODOS">Todos (DAM, DAW & SMR)</option>
                         <option value="1DAM">Específico 1º DAM</option>
+                        <option value="1DAW">Específico 1º DAW</option>
                         <option value="2SMR">Específico 2º SMR</option>
                       </select>
                     </div>
@@ -1425,7 +1456,11 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                   <h3 className={`font-bold text-base flex items-center gap-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>
                     {selectedStudent.studentName}
                     <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 font-mono font-bold border border-indigo-800">
-                      {selectedStudent.course === '1DAM' ? '1º DAM' : '2º SMR'}
+                      {selectedStudent.course === '1DAM'
+                        ? '1º DAM'
+                        : selectedStudent.course === '1DAW'
+                        ? '1º DAW'
+                        : '2º SMR'}
                     </span>
                   </h3>
                   <p className={`text-xs font-mono ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>

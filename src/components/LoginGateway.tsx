@@ -253,7 +253,7 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
                     : 'bg-cyan-950 text-cyan-300 border-cyan-700/60'
                 }`}
               >
-                1º DAM & 2º SMR
+                1º DAM • 1º DAW • 2º SMR
               </span>
               <span
                 className={`text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded-full border ${
@@ -377,7 +377,7 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
                     <label className={`text-xs block mb-1.5 font-medium ${isLight ? 'text-slate-700' : 'text-gray-400'}`}>
                       1. Elige tu Grupo:
                     </label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                       <button
                         type="button"
                         onClick={() => {
@@ -394,6 +394,24 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
                       >
                         <span className="text-sm">💻</span>
                         <span>1º DAM</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sounds.playKey();
+                          setSelectedCourse('1DAW');
+                        }}
+                        className={`py-2 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 ${
+                          selectedCourse === '1DAW'
+                            ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-600/30'
+                            : isLight
+                            ? 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200'
+                            : 'bg-gray-900 border-gray-800 text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        <span className="text-sm">🌐</span>
+                        <span>1º DAW</span>
                       </button>
 
                       <button
@@ -589,7 +607,7 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
 
       {/* Footer */}
       <footer className="relative z-20 py-3 text-center text-[11px] text-gray-500 font-mono">
-        IES Benigaslo • Curso 2025/2026 • Sistemas Informáticos (DAM & SMR)
+        IES Benigaslo • Curso 2025/2026 • Sistemas Informáticos (DAM, DAW & SMR)
       </footer>
     </div>
   );

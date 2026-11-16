@@ -2,7 +2,7 @@ export type OperatingSystem = 'linux' | 'windows';
 
 export type UserRole = 'student' | 'teacher';
 
-export type CourseGroup = '1DAM' | '2SMR';
+export type CourseGroup = '1DAM' | '1DAW' | '2SMR';
 
 export type ThemeMode = 'dark' | 'light' | 'matrix';
 

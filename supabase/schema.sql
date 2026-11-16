@@ -4,13 +4,13 @@
 -- =========================================================================
 -- Copia y pega este script completo en el SQL Editor de tu proyecto Supabase.
 
--- 1. TABLA DE PERFILES (Vinculada a auth.users, con soporte para 1º DAM y 2º SMR)
+-- 1. TABLA DE PERFILES (Vinculada a auth.users, con soporte para 1º DAM, 1º DAW y 2º SMR)
 create table if not exists public.profiles (
   id uuid references auth.users on delete cascade primary key,
   email text not null,
   full_name text,
   role text not null check (role in ('student', 'teacher')) default 'student',
-  course text not null check (course in ('1DAM', '2SMR')) default '1DAM',
+  course text not null check (course in ('1DAM', '1DAW', '2SMR')) default '1DAM',
   xp integer not null default 0,
   level integer not null default 1,
   streak integer not null default 0,
@@ -21,11 +21,14 @@ create table if not exists public.profiles (
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Si la tabla ya existía, añadir la columna 'course' si no está presente
+-- Si la tabla ya existía, actualizar la restricción de 'course' para incluir '1DAW'
 do $$
 begin
   if not exists (select 1 from information_schema.columns where table_name='profiles' and column_name='course') then
-    alter table public.profiles add column course text not null check (course in ('1DAM', '2SMR')) default '1DAM';
+    alter table public.profiles add column course text not null check (course in ('1DAM', '1DAW', '2SMR')) default '1DAM';
+  else
+    alter table public.profiles drop constraint if exists profiles_course_check;
+    alter table public.profiles add constraint profiles_course_check check (course in ('1DAM', '1DAW', '2SMR'));
   end if;
 end $$;
 
