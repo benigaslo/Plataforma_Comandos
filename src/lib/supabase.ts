@@ -2,8 +2,16 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { UserProfile, StudentProgressRow, LeaderboardEntry, UserRole, CourseGroup } from '../types';
 import { getRankForXp } from '../data/badges';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Configuración de Supabase con URL normalizada (sin /rest/v1)
+const rawUrl =
+  import.meta.env.VITE_SUPABASE_URL ||
+  'https://ronlnjcdlwdqsvceomtt.supabase.co';
+
+export const supabaseUrl = rawUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
+
+export const supabaseAnonKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  'sb_publishable_hHf5vPyZPfWGFnct4Pl58Q_uJ_XSYjK';
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
@@ -89,11 +97,13 @@ export async function loginWithCredentials(
   email: string,
   pass: string
 ): Promise<{ success: boolean; user?: UserProfile; message?: string }> {
+  const normalizedEmail = email.toLowerCase().trim();
+
   // 1. Intentar iniciar sesión en Supabase si está configurado
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: normalizedEmail,
         password: pass,
       });
 
@@ -104,24 +114,62 @@ export async function loginWithCredentials(
           .eq('id', data.user.id)
           .single();
 
+        const isTeacher =
+          profile?.role === 'teacher' ||
+          data.user.user_metadata?.role === 'teacher' ||
+          normalizedEmail.includes('asensio') ||
+          normalizedEmail.includes('profesor');
+
+        const role: UserRole = isTeacher ? 'teacher' : (profile?.role || 'student');
+        const course: CourseGroup = profile?.course || data.user.user_metadata?.course || '1DAM';
+        const name =
+          profile?.full_name ||
+          data.user.user_metadata?.full_name ||
+          email.split('@')[0].replace('.', ' ');
+
+        // Sincronizar en profiles si faltara
+        if (!profile) {
+          try {
+            await supabase.from('profiles').upsert({
+              id: data.user.id,
+              email: normalizedEmail,
+              full_name: name,
+              role,
+              course,
+              avatar_url: role === 'teacher' ? '🛡️' : '👨‍💻',
+            });
+          } catch {}
+        }
+
         const user: UserProfile = {
           id: data.user.id,
-          email: data.user.email || email,
-          name: profile?.full_name || email.split('@')[0],
-          role: profile?.role || 'student',
-          course: profile?.course || '1DAM',
-          xp: profile?.xp || 0,
-          level: profile?.level || 1,
-          streak: profile?.streak || 0,
-          avatar: profile?.avatar_url || '⚡',
+          email: data.user.email || normalizedEmail,
+          name,
+          role,
+          course,
+          xp: profile?.xp || (role === 'teacher' ? 9999 : 0),
+          level: profile?.level || (role === 'teacher' ? 7 : 1),
+          streak: profile?.streak || (role === 'teacher' ? 99 : 0),
+          avatar: profile?.avatar_url || (role === 'teacher' ? '🛡️' : '👨‍💻'),
           completed_exercises: profile?.completed_exercises || [],
-          badges: profile?.badges || [],
+          badges: profile?.badges || (role === 'teacher' ? ['level_5_sysadmin'] : []),
         };
         saveUserToStorage(user);
         return { success: true, user };
       } else if (error) {
-        // Si Supabase devuelve error de credenciales explícito
         console.warn('Supabase auth notice:', error.message);
+        if (error.message.includes('Invalid login credentials')) {
+          return {
+            success: false,
+            message: 'Contraseña o correo incorrectos en Supabase. Verifica la contraseña de tu usuario.',
+          };
+        }
+        if (error.message.includes('Email not confirmed')) {
+          return {
+            success: false,
+            message: 'El correo en Supabase no ha sido confirmado aún. Ve a Supabase -> Authentication -> Users y confirma el usuario.',
+          };
+        }
       }
     } catch (e) {
       console.warn('Supabase login fallback:', e);
@@ -130,12 +178,12 @@ export async function loginWithCredentials(
 
   // 2. Comprobar cuentas del aula creadas por el docente (modo local / sin conexión)
   const students = getStoredStudents();
-  const normalizedEmail = email.toLowerCase().trim();
   const found = students.find((s) => s.studentEmail.toLowerCase() === normalizedEmail);
 
   if (found) {
     if (found.initialPassword && found.initialPassword !== pass) {
-      return { success: false, message: 'Contraseña incorrecta para este alumno.' };
+      const roleLabel = found.role === 'teacher' ? 'este docente' : 'este alumno';
+      return { success: false, message: `Contraseña incorrecta para ${roleLabel}.` };
     }
     const user: UserProfile = {
       id: found.studentId,
@@ -154,23 +202,30 @@ export async function loginWithCredentials(
     return { success: true, user };
   }
 
-  // 3. Fallback permisivo de aula: si el correo es nuevo o no está registrado
-  const isTeacher = email.toLowerCase().includes('prof') || email.toLowerCase().includes('gasensio');
-  const fallbackUser: UserProfile = {
-    id: 'user_' + Date.now(),
-    email: normalizedEmail,
-    name: email.split('@')[0].replace('.', ' '),
-    role: isTeacher ? 'teacher' : 'student',
-    course: '1DAM',
-    xp: 0,
-    level: 1,
-    streak: 0,
-    avatar: isTeacher ? '🛡️' : '👨‍💻',
-    completed_exercises: [],
-    badges: [],
+  // 3. Fallback permisivo para docentes si es correo de profesor
+  const isTeacher = normalizedEmail.includes('prof') || normalizedEmail.includes('asensio');
+  if (isTeacher) {
+    const fallbackUser: UserProfile = {
+      id: 'teacher_' + Date.now(),
+      email: normalizedEmail,
+      name: 'Prof. ' + email.split('@')[0].replace('.', ' '),
+      role: 'teacher',
+      course: '1DAM',
+      xp: 9999,
+      level: 7,
+      streak: 99,
+      avatar: '🛡️',
+      completed_exercises: [],
+      badges: ['level_5_sysadmin'],
+    };
+    saveUserToStorage(fallbackUser);
+    return { success: true, user: fallbackUser };
+  }
+
+  return {
+    success: false,
+    message: 'Usuario no encontrado. Asegúrate de estar dado de alta por el profesor.',
   };
-  saveUserToStorage(fallbackUser);
-  return { success: true, user: fallbackUser };
 }
 
 export async function logoutUser(): Promise<void> {
