@@ -4,12 +4,13 @@
 -- =========================================================================
 -- Copia y pega este script completo en el SQL Editor de tu proyecto Supabase.
 
--- 1. TABLA DE PERFILES (Vinculada a auth.users)
+-- 1. TABLA DE PERFILES (Vinculada a auth.users, con soporte para 1º DAM y 2º SMR)
 create table if not exists public.profiles (
   id uuid references auth.users on delete cascade primary key,
   email text not null,
   full_name text,
   role text not null check (role in ('student', 'teacher')) default 'student',
+  course text not null check (course in ('1DAM', '2SMR')) default '1DAM',
   xp integer not null default 0,
   level integer not null default 1,
   streak integer not null default 0,
@@ -19,6 +20,14 @@ create table if not exists public.profiles (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+
+-- Si la tabla ya existía, añadir la columna 'course' si no está presente
+do $$
+begin
+  if not exists (select 1 from information_schema.columns where table_name='profiles' and column_name='course') then
+    alter table public.profiles add column course text not null check (course in ('1DAM', '2SMR')) default '1DAM';
+  end if;
+end $$;
 
 -- 2. TABLA DE REGISTRO DE ENVÍOS E INTENTOS (Submissions)
 create table if not exists public.submissions (
@@ -75,23 +84,31 @@ create policy "Los docentes pueden ver los intentos de todos los alumnos"
     )
   );
 
--- 4. TRIGGER PARA CREACIÓN AUTOMÁTICA DE PERFIL CUANDO EL DOCENTE CREA UN USUARIO
+-- 4. TRIGGER PARA CREACIÓN AUTOMÁTICA DE PERFIL CUANDO SE REGISTRA UN USUARIO
 create or replace function public.handle_new_user()
 returns trigger as $$
 declare
   is_teacher boolean;
+  user_course text;
+  assigned_role text;
 begin
-  is_teacher := (new.email ilike '%gasensio%' or new.email ilike '%profesor%');
+  is_teacher := coalesce((new.raw_user_meta_data->>'role' = 'teacher'), false)
+                or (new.email ilike '%gasensio%' or new.email ilike '%profesor%');
+  assigned_role := case when is_teacher then 'teacher' else coalesce(new.raw_user_meta_data->>'role', 'student') end;
+  user_course := coalesce(new.raw_user_meta_data->>'course', '1DAM');
 
-  insert into public.profiles (id, email, full_name, role, avatar_url)
+  insert into public.profiles (id, email, full_name, role, course, avatar_url)
   values (
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
-    case when is_teacher then 'teacher' else 'student' end,
-    case when is_teacher then '🛡️' else '⚡' end
+    assigned_role,
+    user_course,
+    case when assigned_role = 'teacher' then '🛡️' else '⚡' end
   )
-  on conflict (id) do nothing;
+  on conflict (id) do update set
+    role = excluded.role,
+    course = excluded.course;
   return new;
 end;
 $$ language plpgsql security definer;
@@ -101,11 +118,13 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- 5. FUNCIÓN RPC PARA QUE EL PROFESOR CREE ALUMNOS DIRECTAMENTE DESDE LA WEB
+-- 5. FUNCIÓN RPC PARA QUE EL PROFESOR CREE ALUMNOS O DOCENTES DIRECTAMENTE DESDE LA WEB
 create or replace function public.admin_create_student(
   student_email text,
   student_password text,
-  student_name text
+  student_name text,
+  user_role text default 'student',
+  student_course text default '1DAM'
 ) returns json as $$
 declare
   new_user_id uuid;
@@ -132,7 +151,7 @@ begin
     student_email,
     crypt(student_password, gen_salt('bf')),
     now(),
-    jsonb_build_object('full_name', student_name),
+    jsonb_build_object('full_name', student_name, 'role', user_role, 'course', student_course),
     now(),
     now()
   );

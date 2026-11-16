@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StudentProgressRow, Exercise, OperatingSystem } from '../types';
+import { StudentProgressRow, Exercise, OperatingSystem, UserRole, CourseGroup } from '../types';
 import {
   fetchClassroomProgress,
   createStudentAccount,
@@ -29,6 +29,8 @@ import {
   GraduationCap,
   PlusCircle,
   BookOpen,
+  Filter,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface TeacherPanelProps {
@@ -45,17 +47,21 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
   const [activeTab, setActiveTab] = useState<'monitoring' | 'management' | 'exercises'>('monitoring');
   const [students, setStudents] = useState<StudentProgressRow[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [courseFilter, setCourseFilter] = useState<'TODOS' | '1DAM' | '2SMR' | 'TEACHERS'>('TODOS');
   const [selectedStudent, setSelectedStudent] = useState<StudentProgressRow | null>(null);
 
-  // Form single student
+  // Form single user
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [newRole, setNewRole] = useState<UserRole>('student');
+  const [newCourse, setNewCourse] = useState<CourseGroup>('1DAM');
   const [formMsg, setFormMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Bulk import
   const [bulkText, setBulkText] = useState('');
+  const [bulkCourse, setBulkCourse] = useState<CourseGroup>('1DAM');
   const [bulkMsg, setBulkMsg] = useState<string | null>(null);
 
   // Custom Exercise Creation State
@@ -71,6 +77,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
   const [exHint, setExHint] = useState('');
   const [exCommands, setExCommands] = useState('');
   const [exOutput, setExOutput] = useState('');
+  const [exTargetCourse, setExTargetCourse] = useState<CourseGroup | 'TODOS'>('TODOS');
   const [exSuccessMsg, setExSuccessMsg] = useState<string | null>(null);
 
   const loadData = () => {
@@ -86,18 +93,26 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
 
   if (!isOpen) return null;
 
-  const filteredStudents = students.filter(
-    (st) =>
+  const filteredStudents = students.filter((st) => {
+    const matchesSearch =
       st.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      st.studentEmail.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      st.studentEmail.toLowerCase().includes(searchTerm.toLowerCase());
 
-  const totalXP = students.reduce((acc, st) => acc + st.xp, 0);
-  const avgXP = students.length ? Math.round(totalXP / students.length) : 0;
-  const avgCompletion = students.length
+    if (!matchesSearch) return false;
+
+    if (courseFilter === '1DAM') return st.course === '1DAM' && st.role === 'student';
+    if (courseFilter === '2SMR') return st.course === '2SMR' && st.role === 'student';
+    if (courseFilter === 'TEACHERS') return st.role === 'teacher';
+    return true; // TODOS
+  });
+
+  const studentOnlyList = students.filter((s) => s.role === 'student');
+  const totalXP = studentOnlyList.reduce((acc, st) => acc + st.xp, 0);
+  const avgXP = studentOnlyList.length ? Math.round(totalXP / studentOnlyList.length) : 0;
+  const avgCompletion = studentOnlyList.length
     ? Math.round(
-        (students.reduce((acc, st) => acc + st.completedCount, 0) /
-          (students.length * (students[0]?.totalExercises || 20))) *
+        (studentOnlyList.reduce((acc, st) => acc + st.completedCount, 0) /
+          (studentOnlyList.length * (studentOnlyList[0]?.totalExercises || 26))) *
           100
       )
     : 0;
@@ -113,7 +128,13 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
     setIsSubmitting(true);
     setFormMsg(null);
 
-    const res = await createStudentAccount(newName.trim(), newEmail.trim(), newPassword.trim());
+    const res = await createStudentAccount(
+      newName.trim(),
+      newEmail.trim(),
+      newPassword.trim(),
+      newRole,
+      newCourse
+    );
     setIsSubmitting(false);
 
     if (res.success) {
@@ -136,12 +157,12 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
     setBulkMsg(null);
 
     const lines = bulkText.split('\n');
-    const res = await bulkCreateStudents(lines);
+    const res = await bulkCreateStudents(lines, bulkCourse, 'student');
     setIsSubmitting(false);
 
     if (res.createdCount > 0) {
       sounds.playSuccess();
-      setBulkMsg(`✔ Se han creado ${res.createdCount} alumnos correctamente.`);
+      setBulkMsg(`✔ Se han creado ${res.createdCount} cuentas correctamente para ${bulkCourse === '1DAM' ? '1º DAM' : '2º SMR'}.`);
       setBulkText('');
       loadData();
     } else {
@@ -151,7 +172,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (confirm(`¿Estás seguro de eliminar el acceso de "${name}"?`)) {
+    if (confirm(`¿Estás seguro de eliminar el usuario "${name}"?`)) {
       sounds.playKey();
       await deleteStudent(id);
       loadData();
@@ -171,26 +192,24 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
       .split('\n')
       .map((c) => c.trim())
       .filter(Boolean)
-      .map((c) => {
-        // Normalize as RegExp
-        return new RegExp(`^${c.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i');
-      });
+      .map((c) => new RegExp(`^${c.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i'));
 
     const newEx: Exercise = {
       id,
       title: exTitle.trim(),
       os: exOs,
-      module: exModule.trim() || `${exOs === 'linux' ? 'Linux' : 'Windows'} - Personalizados`,
+      module: exModule.trim() || `${exOs === 'linux' ? 'Linux' : 'Windows'} - Retos`,
       difficulty: exDifficulty,
       xpReward: Number(exXp) || 75,
       startingDir: exStartDir.trim() || (exOs === 'linux' ? '/home/usuario' : 'C:\\Users\\Alumno'),
       mission: exMission.trim(),
-      explanation: exExplanation.trim() || 'Reto creado por el docente.',
+      explanation: exExplanation.trim() || 'Reto formativo creado por el docente.',
       hint: exHint.trim() || 'Revisa la sintaxis del comando indicado.',
       validCommandPatterns: validPatterns,
       simulatedOutput: exOutput.trim() || '(Comando ejecutado con éxito por el sistema)',
       isCustom: true,
       createdBy: 'Profesor',
+      targetCourse: exTargetCourse,
     };
 
     saveCustomExercise(newEx);
@@ -217,11 +236,11 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
 
   const exportCSV = () => {
     sounds.playKey();
-    const headers = 'ID,Nombre,Email,Contraseña_Inicial,Nivel,XP,Racha,Completados,Total,Porcentaje\n';
+    const headers = 'ID,Nombre,Email,Rol,Curso,Contraseña_Inicial,Nivel,XP,Racha,Completados,Total,Porcentaje\n';
     const rows = students
       .map(
         (st) =>
-          `"${st.studentId}","${st.studentName}","${st.studentEmail}","${st.initialPassword || 'N/A'}",${st.level},${st.xp},${st.streak},${st.completedCount},${st.totalExercises},"${Math.round((st.completedCount / st.totalExercises) * 100)}%"`
+          `"${st.studentId}","${st.studentName}","${st.studentEmail}","${st.role}","${st.course}","${st.initialPassword || 'N/A'}",${st.level},${st.xp},${st.streak},${st.completedCount},${st.totalExercises},"${Math.round((st.completedCount / st.totalExercises) * 100)}%"`
       )
       .join('\n');
 
@@ -229,7 +248,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `alumnos_comandquest_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `usuarios_comandquest_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -247,12 +266,17 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
             <div>
               <div className="flex items-center space-x-2">
                 <h2 className="text-lg font-black text-white font-mono">PANEL DE CONTROL DOCENTE</h2>
-                <span className="text-xs bg-indigo-950 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-800 font-mono">
-                  1º DAM • SINF
-                </span>
+                <div className="flex space-x-1">
+                  <span className="text-[10px] bg-blue-950 text-blue-300 px-2 py-0.5 rounded-full border border-blue-800 font-mono font-bold">
+                    1º DAM
+                  </span>
+                  <span className="text-[10px] bg-purple-950 text-purple-300 px-2 py-0.5 rounded-full border border-purple-800 font-mono font-bold">
+                    2º SMR
+                  </span>
+                </div>
               </div>
               <p className="text-xs text-gray-400">
-                Gestión de cuentas, diseño de nuevos retos formativos y auditoría de notas
+                Gestión multi-curso, altas de alumnos/docentes y control de progreso
               </p>
             </div>
           </div>
@@ -308,7 +332,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
             }`}
           >
             <UserPlus className="w-4 h-4" />
-            <span>👥 Crear & Gestionar Alumnos</span>
+            <span>👥 Altas: Alumnos & Docentes</span>
           </button>
 
           <button
@@ -338,8 +362,8 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                     <Users className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-xs text-gray-400 uppercase font-mono">Alumnos Activos</div>
-                    <div className="text-2xl font-black text-white font-mono">{students.length}</div>
+                    <div className="text-xs text-gray-400 uppercase font-mono">Alumnos Matriculados</div>
+                    <div className="text-2xl font-black text-white font-mono">{studentOnlyList.length}</div>
                   </div>
                 </div>
 
@@ -348,7 +372,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-xs text-gray-400 uppercase font-mono">Media XP del Aula</div>
+                    <div className="text-xs text-gray-400 uppercase font-mono">Media XP Global</div>
                     <div className="text-2xl font-black text-amber-400 font-mono">{avgXP} XP</div>
                   </div>
                 </div>
@@ -364,16 +388,65 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                 </div>
               </div>
 
-              {/* Search bar */}
-              <div className="relative">
-                <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Buscar alumno por nombre o correo..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-gray-950/80 border border-gray-800 rounded-xl pl-9 pr-4 py-2.5 text-xs text-gray-200 placeholder-gray-500 outline-none focus:border-indigo-500"
-                />
+              {/* Filter and Search Bar */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por nombre o correo..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full bg-gray-950/80 border border-gray-800 rounded-xl pl-9 pr-4 py-2 text-xs text-gray-200 placeholder-gray-500 outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                {/* Course Filter */}
+                <div className="flex items-center space-x-1 bg-gray-950/80 border border-gray-800 p-1 rounded-xl text-xs font-semibold">
+                  <span className="text-gray-500 px-2 flex items-center gap-1">
+                    <Filter className="w-3 h-3" /> Grupo:
+                  </span>
+                  <button
+                    onClick={() => setCourseFilter('TODOS')}
+                    className={`px-2.5 py-1 rounded-lg transition ${
+                      courseFilter === 'TODOS'
+                        ? 'bg-indigo-600 text-white font-bold'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Todos
+                  </button>
+                  <button
+                    onClick={() => setCourseFilter('1DAM')}
+                    className={`px-2.5 py-1 rounded-lg transition ${
+                      courseFilter === '1DAM'
+                        ? 'bg-blue-600 text-white font-bold'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    1º DAM
+                  </button>
+                  <button
+                    onClick={() => setCourseFilter('2SMR')}
+                    className={`px-2.5 py-1 rounded-lg transition ${
+                      courseFilter === '2SMR'
+                        ? 'bg-purple-600 text-white font-bold'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    2º SMR
+                  </button>
+                  <button
+                    onClick={() => setCourseFilter('TEACHERS')}
+                    className={`px-2.5 py-1 rounded-lg transition ${
+                      courseFilter === 'TEACHERS'
+                        ? 'bg-amber-600 text-white font-bold'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Docentes
+                  </button>
+                </div>
               </div>
 
               {/* Students Table */}
@@ -381,7 +454,8 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                 <table className="w-full text-left text-xs">
                   <thead className="bg-gray-900/90 text-gray-400 uppercase font-mono text-[11px] border-b border-gray-800">
                     <tr>
-                      <th className="px-4 py-3">Alumno</th>
+                      <th className="px-4 py-3">Usuario</th>
+                      <th className="px-4 py-3 text-center">Grupo / Rol</th>
                       <th className="px-4 py-3 text-center">Nivel</th>
                       <th className="px-4 py-3 text-right">XP</th>
                       <th className="px-4 py-3 text-center">Racha</th>
@@ -396,8 +470,29 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                       return (
                         <tr key={st.studentId} className="hover:bg-gray-800/40 transition">
                           <td className="px-4 py-3">
-                            <div className="font-bold text-white">{st.studentName}</div>
+                            <div className="font-bold text-white flex items-center gap-1.5">
+                              {st.studentName}
+                              {st.role === 'teacher' && (
+                                <span className="text-[9px] bg-amber-950 text-amber-300 border border-amber-800 px-1.5 py-0.2 rounded font-mono font-bold">
+                                  DOCENTE
+                                </span>
+                              )}
+                            </div>
                             <div className="text-[11px] text-gray-500 font-mono">{st.studentEmail}</div>
+                          </td>
+
+                          <td className="px-4 py-3 text-center font-mono">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                st.role === 'teacher'
+                                  ? 'bg-amber-950 text-amber-300 border-amber-800'
+                                  : st.course === '1DAM'
+                                  ? 'bg-blue-950 text-blue-300 border-blue-800'
+                                  : 'bg-purple-950 text-purple-300 border-purple-800'
+                              }`}
+                            >
+                              {st.role === 'teacher' ? 'Docente' : st.course === '1DAM' ? '1º DAM' : '2º SMR'}
+                            </span>
                           </td>
 
                           <td className="px-4 py-3 text-center font-mono">
@@ -417,9 +512,9 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                           </td>
 
                           <td className="px-4 py-3">
-                            <div className="w-36 space-y-1">
+                            <div className="w-32 space-y-1">
                               <div className="flex justify-between text-[10px] text-gray-400 font-mono">
-                                <span>{st.completedCount}/{st.totalExercises} retos</span>
+                                <span>{st.completedCount}/{st.totalExercises}</span>
                                 <span>{percent}%</span>
                               </div>
                               <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
@@ -439,7 +534,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                               }}
                               className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg text-xs font-medium inline-flex items-center gap-1 transition"
                             >
-                              <span>Ver Intentos</span>
+                              <span>Detalle</span>
                               <ChevronRight className="w-3.5 h-3.5" />
                             </button>
                           </td>
@@ -454,15 +549,15 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
 
           {activeTab === 'management' && (
             <div className="space-y-6">
-              {/* Form 1: Crear Alumno Individual */}
+              {/* Form 1: Crear Usuario Individual (Alumno o Docente) */}
               <div className="bg-gray-950/80 border border-gray-800 p-5 rounded-2xl space-y-4">
-                <div className="flex items-center space-x-2 text-sm font-bold text-white">
-                  <UserPlus className="w-4 h-4 text-cyan-400" />
-                  <span>Crear Nuevo Alumno (Sin entrar en Supabase)</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-sm font-bold text-white">
+                    <UserPlus className="w-4 h-4 text-cyan-400" />
+                    <span>Dar de Alta Nuevo Usuario (Alumno o Docente)</span>
+                  </div>
+                  <span className="text-[11px] text-gray-400 font-mono">Gestión integrada sin Supabase</span>
                 </div>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  Crea los accesos de tus alumnos directamente desde aquí. El alumno usará este correo y contraseña para entrar a la plataforma.
-                </p>
 
                 {formMsg && (
                   <div
@@ -477,57 +572,119 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                   </div>
                 )}
 
-                <form onSubmit={handleCreateStudent} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-[11px] text-gray-400 font-medium block mb-1">Nombre y Apellidos / Alias</label>
-                    <input
-                      type="text"
-                      placeholder="Ej: Marcos Sánchez"
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-cyan-400"
-                    />
-                  </div>
+                <form onSubmit={handleCreateStudent} className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    {/* Rol Selector */}
+                    <div>
+                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Tipo de Usuario (Rol)</label>
+                      <select
+                        value={newRole}
+                        onChange={(e) => setNewRole(e.target.value as UserRole)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                      >
+                        <option value="student">👨‍💻 Alumno</option>
+                        <option value="teacher">👨‍🏫 Docente (Profesor)</option>
+                      </select>
+                    </div>
 
-                  <div>
-                    <label className="text-[11px] text-gray-400 font-medium block mb-1">Correo Electrónico</label>
-                    <input
-                      type="email"
-                      placeholder="alumno@iesbenigaslo.es"
-                      value={newEmail}
-                      onChange={(e) => setNewEmail(e.target.value)}
-                      className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-cyan-400 font-mono"
-                    />
-                  </div>
+                    {/* Curso / Grupo Selector */}
+                    <div>
+                      <label className="text-[11px] text-gray-400 font-medium block mb-1">
+                        Grupo {newRole === 'teacher' ? '(Departamento)' : '(Curso)'}
+                      </label>
+                      <select
+                        value={newCourse}
+                        onChange={(e) => setNewCourse(e.target.value as CourseGroup)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none font-bold"
+                      >
+                        <option value="1DAM">1º DAM (Desarrollo Multiplataforma)</option>
+                        <option value="2SMR">2º SMR (Sistemas Microinformáticos)</option>
+                      </select>
+                    </div>
 
-                  <div>
-                    <label className="text-[11px] text-gray-400 font-medium block mb-1">Contraseña Inicial</label>
-                    <div className="flex gap-2">
+                    {/* Nombre */}
+                    <div>
+                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Nombre y Apellidos</label>
                       <input
                         type="text"
-                        placeholder="dam2026"
+                        placeholder="Ej: Marcos Sánchez"
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-cyan-400"
+                      />
+                    </div>
+
+                    {/* Email */}
+                    <div>
+                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Correo Electrónico</label>
+                      <input
+                        type="email"
+                        placeholder="usuario@iesbenigaslo.es"
+                        value={newEmail}
+                        onChange={(e) => setNewEmail(e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-cyan-400 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Contraseña Inicial</label>
+                      <input
+                        type="text"
+                        placeholder="benigaslo2026"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-cyan-400 font-mono"
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-cyan-400 font-mono"
                       />
+                    </div>
+
+                    <div className="pt-5">
                       <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs shrink-0 transition"
+                        className={`px-6 py-2 rounded-xl text-xs font-bold text-white transition shadow-md flex items-center space-x-1.5 ${
+                          newRole === 'teacher'
+                            ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500'
+                            : 'bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500'
+                        }`}
                       >
-                        {isSubmitting ? 'Creando...' : 'Crear'}
+                        <UserPlus className="w-4 h-4" />
+                        <span>{isSubmitting ? 'Registrando...' : newRole === 'teacher' ? 'Dar de Alta Docente' : 'Dar de Alta Alumno'}</span>
                       </button>
                     </div>
                   </div>
+
+                  {newRole === 'teacher' && (
+                    <div className="p-2.5 bg-amber-950/40 border border-amber-800/60 rounded-xl text-[11px] text-amber-300 flex items-center gap-2">
+                      <ShieldAlert className="w-4 h-4 shrink-0 text-amber-400" />
+                      <span>Los docentes tendrán permisos para ver a todos los alumnos, diseñar ejercicios y crear cuentas.</span>
+                    </div>
+                  )}
                 </form>
               </div>
 
-              {/* Form 2: Alta Masiva */}
+              {/* Form 2: Alta Masiva por Curso */}
               <div className="bg-gray-950/80 border border-gray-800 p-5 rounded-2xl space-y-3">
-                <div className="flex items-center space-x-2 text-sm font-bold text-white">
-                  <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-                  <span>Alta Masiva de Alumnos (Copiar y Pegar Lista de Clase)</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-sm font-bold text-white">
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                    <span>Alta Masiva de Alumnos por Grupo</span>
+                  </div>
+
+                  <div className="flex items-center space-x-2 text-xs">
+                    <span className="text-gray-400">Asignar a:</span>
+                    <select
+                      value={bulkCourse}
+                      onChange={(e) => setBulkCourse(e.target.value as CourseGroup)}
+                      className="bg-gray-900 border border-gray-700 text-white rounded-lg px-2 py-1 text-xs font-bold"
+                    >
+                      <option value="1DAM">1º DAM</option>
+                      <option value="2SMR">2º SMR</option>
+                    </select>
+                  </div>
                 </div>
+
                 <p className="text-xs text-gray-400">
                   Pega varias líneas con el formato: <code className="text-cyan-300">Nombre, Correo, Contraseña</code> (una por línea).
                 </p>
@@ -540,7 +697,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
 
                 <textarea
                   rows={4}
-                  placeholder={`Laura Pérez, lperez@iesbenigaslo.es, dam2026\nMarc Ramos, mramos@iesbenigaslo.es, dam2026\nSara Vidal, svidal@iesbenigaslo.es, dam2026`}
+                  placeholder={`Laura Pérez, lperez@iesbenigaslo.es, dam2026\nMarc Ramos, mramos@iesbenigaslo.es, dam2026`}
                   value={bulkText}
                   onChange={(e) => setBulkText(e.target.value)}
                   className="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-xs text-white font-mono outline-none focus:border-emerald-500"
@@ -552,18 +709,18 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                   disabled={isSubmitting || !bulkText.trim()}
                   className="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition"
                 >
-                  Importar toda la lista en lote
+                  Importar lista para {bulkCourse === '1DAM' ? '1º DAM' : '2º SMR'}
                 </button>
               </div>
 
-              {/* List of existing student credentials */}
+              {/* List of existing accounts */}
               <div className="bg-gray-950/80 border border-gray-800 rounded-2xl overflow-hidden">
                 <div className="p-4 bg-gray-900/90 border-b border-gray-800 flex items-center justify-between">
                   <span className="text-xs font-bold text-white uppercase font-mono">
-                    Credenciales Generadas para el Aula ({students.length} alumnos)
+                    Cuentas Registradas en la Plataforma ({students.length})
                   </span>
                   <span className="text-[11px] text-gray-400">
-                    Puedes dar estas contraseñas a los alumnos en clase
+                    Contraseñas iniciales accesibles por el profesor
                   </span>
                 </div>
 
@@ -571,7 +728,20 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                   {students.map((st) => (
                     <div key={st.studentId} className="px-4 py-3 flex items-center justify-between hover:bg-gray-900/40">
                       <div>
-                        <div className="font-bold text-white">{st.studentName}</div>
+                        <div className="font-bold text-white flex items-center gap-2">
+                          <span>{st.studentName}</span>
+                          <span
+                            className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold ${
+                              st.role === 'teacher'
+                                ? 'bg-amber-950 text-amber-300 border border-amber-800'
+                                : st.course === '1DAM'
+                                ? 'bg-blue-950 text-blue-300 border border-blue-800'
+                                : 'bg-purple-950 text-purple-300 border border-purple-800'
+                            }`}
+                          >
+                            {st.role === 'teacher' ? 'DOCENTE' : st.course}
+                          </span>
+                        </div>
                         <div className="text-[11px] text-gray-400 font-mono">{st.studentEmail}</div>
                       </div>
 
@@ -583,7 +753,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                         <button
                           onClick={() => handleDelete(st.studentId, st.studentName)}
                           className="p-1.5 text-gray-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition"
-                          title="Eliminar alumno"
+                          title="Eliminar usuario"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -596,15 +766,14 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
           )}
 
           {activeTab === 'exercises' && (
-            /* TAB: CREADOR DE RETOS (AÑADIR EJERCICIO DIRECTAMENTE) */
             <div className="space-y-6">
               <div className="bg-gray-950/80 border-2 border-amber-500/40 p-5 rounded-2xl space-y-4">
                 <div className="flex items-center space-x-2 text-sm font-bold text-amber-300">
                   <PlusCircle className="w-5 h-5 text-amber-400" />
-                  <span>Diseñador de Nuevos Retos para los Alumnos</span>
+                  <span>Diseñador de Nuevos Retos (1º DAM & 2º SMR)</span>
                 </div>
                 <p className="text-xs text-gray-300 leading-relaxed">
-                  Crea ejercicios adicionales a medida para tus alumnos. El ejercicio se integrará automáticamente en la lista de módulos de la plataforma y estará disponible al instante para que lo resuelvan.
+                  Crea ejercicios adicionales a medida para tus grupos. Se integrará automáticamente en los módulos correspondientes.
                 </p>
 
                 {exSuccessMsg && (
@@ -615,7 +784,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                 )}
 
                 <form onSubmit={handleSaveExercise} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <div>
                       <label className="text-[11px] text-gray-400 font-medium block mb-1">Sistema Operativo</label>
                       <select
@@ -634,6 +803,19 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                     </div>
 
                     <div>
+                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Destinado a</label>
+                      <select
+                        value={exTargetCourse}
+                        onChange={(e) => setExTargetCourse(e.target.value as CourseGroup | 'TODOS')}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white outline-none font-bold"
+                      >
+                        <option value="TODOS">Ambos (1º DAM & 2º SMR)</option>
+                        <option value="1DAM">Específico 1º DAM</option>
+                        <option value="2SMR">Específico 2º SMR</option>
+                      </select>
+                    </div>
+
+                    <div>
                       <label className="text-[11px] text-gray-400 font-medium block mb-1">Módulo o Categoría</label>
                       <input
                         type="text"
@@ -645,7 +827,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                     </div>
 
                     <div>
-                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Dificultad y Recompensa XP</label>
+                      <label className="text-[11px] text-gray-400 font-medium block mb-1">Dificultad y XP</label>
                       <div className="flex gap-2">
                         <select
                           value={exDifficulty}
@@ -795,6 +977,11 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 font-bold">
                               +{ex.xpReward} XP
                             </span>
+                            {ex.targetCourse && (
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800">
+                                {ex.targetCourse}
+                              </span>
+                            )}
                           </div>
                           <p className="text-gray-400 text-[11px]">{ex.mission}</p>
                         </div>
@@ -821,8 +1008,11 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
             <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-xl max-h-[80vh] flex flex-col p-5 space-y-4">
               <div className="flex items-center justify-between border-b border-gray-800 pb-3">
                 <div>
-                  <h3 className="font-bold text-base text-white">
-                    Historial de {selectedStudent.studentName}
+                  <h3 className="font-bold text-base text-white flex items-center gap-2">
+                    {selectedStudent.studentName}
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 font-mono font-bold border border-indigo-800">
+                      {selectedStudent.course === '1DAM' ? '1º DAM' : '2º SMR'}
+                    </span>
                   </h3>
                   <p className="text-xs text-gray-400 font-mono">{selectedStudent.studentEmail}</p>
                 </div>
@@ -838,7 +1028,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                 <div className="text-xs font-bold uppercase text-gray-400">Últimos comandos intentados:</div>
                 {selectedStudent.recentAttempts.length === 0 ? (
                   <div className="text-xs text-gray-500 italic p-4 text-center">
-                    No hay intentos registrados recientemente para este alumno.
+                    No hay intentos registrados recientemente para este usuario.
                   </div>
                 ) : (
                   selectedStudent.recentAttempts.map((att, i) => (

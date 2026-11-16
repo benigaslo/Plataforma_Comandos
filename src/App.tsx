@@ -223,7 +223,8 @@ export const App: React.FC = () => {
       <LeaderboardModal
         isOpen={isLeaderboardOpen}
         onClose={() => setIsLeaderboardOpen(false)}
-        currentUserId={user.id}
+        currentUserId={user?.id || ''}
+        theme={theme}
       />
 
       <BadgesModal

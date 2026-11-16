@@ -2,6 +2,8 @@ export type OperatingSystem = 'linux' | 'windows';
 
 export type UserRole = 'student' | 'teacher';
 
+export type CourseGroup = '1DAM' | '2SMR';
+
 export type ThemeMode = 'dark' | 'light' | 'matrix';
 
 export interface UserProfile {
@@ -9,6 +11,7 @@ export interface UserProfile {
   email: string;
   name: string;
   role: UserRole;
+  course?: CourseGroup;
   xp: number;
   level: number;
   streak: number;
@@ -33,6 +36,7 @@ export interface Exercise {
   secondaryValidCommands?: string[];
   isCustom?: boolean; // created by teacher
   createdBy?: string;
+  targetCourse?: CourseGroup | 'TODOS';
 }
 
 export interface ExerciseModule {
@@ -64,6 +68,8 @@ export interface StudentProgressRow {
   studentId: string;
   studentName: string;
   studentEmail: string;
+  role: UserRole;
+  course: CourseGroup;
   initialPassword?: string;
   level: number;
   xp: number;
@@ -84,6 +90,7 @@ export interface LeaderboardEntry {
   rank: number;
   id: string;
   name: string;
+  course: CourseGroup;
   avatar: string;
   xp: number;
   level: number;

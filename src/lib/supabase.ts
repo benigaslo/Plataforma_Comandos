@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { UserProfile, StudentProgressRow, LeaderboardEntry } from '../types';
+import { UserProfile, StudentProgressRow, LeaderboardEntry, UserRole, CourseGroup } from '../types';
 import { getRankForXp } from '../data/badges';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
@@ -17,6 +17,7 @@ const DEMO_STUDENT: UserProfile = {
   email: 'alumno.dam@iesbenigaslo.es',
   name: 'Alumno 1º DAM',
   role: 'student',
+  course: '1DAM',
   xp: 350,
   level: 2,
   streak: 3,
@@ -30,6 +31,7 @@ const DEMO_TEACHER: UserProfile = {
   email: 'gasensio@iesbenigaslo.es',
   name: 'Prof. G. Asensio',
   role: 'teacher',
+  course: '1DAM',
   xp: 9999,
   level: 7,
   streak: 99,
@@ -39,16 +41,19 @@ const DEMO_TEACHER: UserProfile = {
 };
 
 const INITIAL_MOCK_STUDENTS: StudentProgressRow[] = [
+  // 1º DAM
   {
     studentId: 'std-1',
     studentName: 'Beatriz Navarro (CyberTux)',
     studentEmail: 'bnavarro@iesbenigaslo.es',
+    role: 'student',
+    course: '1DAM',
     initialPassword: 'dam' + Math.floor(1000 + Math.random() * 9000),
     level: 4,
     xp: 920,
     streak: 8,
-    completedCount: 12,
-    totalExercises: 20,
+    completedCount: 14,
+    totalExercises: 26,
     lastActive: 'Hace 5 min',
     recentAttempts: [
       { exerciseId: 'win-08', exerciseTitle: 'Eliminar recursivo', command: 'rmdir /s /q Proyecto', success: true, timestamp: '14:15' },
@@ -59,61 +64,105 @@ const INITIAL_MOCK_STUDENTS: StudentProgressRow[] = [
     studentId: 'std-2',
     studentName: 'Alejandro Martínez (RootHero)',
     studentEmail: 'amartinez@iesbenigaslo.es',
+    role: 'student',
+    course: '1DAM',
     initialPassword: 'dam' + Math.floor(1000 + Math.random() * 9000),
     level: 3,
     xp: 540,
     streak: 5,
-    completedCount: 7,
-    totalExercises: 20,
+    completedCount: 9,
+    totalExercises: 26,
     lastActive: 'Hace 12 min',
     recentAttempts: [
       { exerciseId: 'linux-06', exerciseTitle: 'Listar todo con detalle', command: 'ls -la /', success: true, timestamp: '15:10' },
     ],
   },
   {
+    studentId: 'std-4',
+    studentName: 'Carlos Gómez (BashRunner)',
+    studentEmail: 'cgomez@iesbenigaslo.es',
+    role: 'student',
+    course: '1DAM',
+    initialPassword: 'dam' + Math.floor(1000 + Math.random() * 9000),
+    level: 2,
+    xp: 220,
+    streak: 2,
+    completedCount: 4,
+    totalExercises: 26,
+    lastActive: 'Ayer',
+    recentAttempts: [
+      { exerciseId: 'linux-01', exerciseTitle: 'Crear archivo tamaño 0', command: 'touch arch_tam0', success: true, timestamp: 'Ayer 18:00' },
+    ],
+  },
+
+  // 2º SMR
+  {
+    studentId: 'std-smr-1',
+    studentName: 'Marcos Rius (NetAdmin)',
+    studentEmail: 'mrius@iesbenigaslo.es',
+    role: 'student',
+    course: '2SMR',
+    initialPassword: 'smr' + Math.floor(1000 + Math.random() * 9000),
+    level: 5,
+    xp: 1450,
+    streak: 11,
+    completedCount: 19,
+    totalExercises: 26,
+    lastActive: 'Hace 20 min',
+    recentAttempts: [
+      { exerciseId: 'linux-raid1-mdadm', exerciseTitle: 'Configuración RAID 1', command: 'mdadm --create /dev/md0 --level=1 --raid-devices=2 /dev/sdb1 /dev/sdc1', success: true, timestamp: '11:20' },
+    ],
+  },
+  {
     studentId: 'std-3',
     studentName: 'Daniela Soler (NetWalker)',
     studentEmail: 'dsoler@iesbenigaslo.es',
-    initialPassword: 'dam' + Math.floor(1000 + Math.random() * 9000),
+    role: 'student',
+    course: '2SMR',
+    initialPassword: 'smr' + Math.floor(1000 + Math.random() * 9000),
     level: 3,
     xp: 410,
     streak: 3,
-    completedCount: 5,
-    totalExercises: 20,
+    completedCount: 6,
+    totalExercises: 26,
     lastActive: 'Hace 35 min',
     recentAttempts: [
       { exerciseId: 'win-04', exerciseTitle: 'Crear subcarpetas', command: 'mkdir Imágenes Documentos', success: true, timestamp: '14:40' },
     ],
   },
   {
-    studentId: 'std-4',
-    studentName: 'Carlos Gómez (BashRunner)',
-    studentEmail: 'cgomez@iesbenigaslo.es',
-    initialPassword: 'dam' + Math.floor(1000 + Math.random() * 9000),
+    studentId: 'std-smr-2',
+    studentName: 'Joan Vicent (DiskMaster)',
+    studentEmail: 'jvicent@iesbenigaslo.es',
+    role: 'student',
+    course: '2SMR',
+    initialPassword: 'smr' + Math.floor(1000 + Math.random() * 9000),
     level: 2,
-    xp: 220,
-    streak: 2,
-    completedCount: 3,
-    totalExercises: 20,
-    lastActive: 'Ayer',
+    xp: 320,
+    streak: 4,
+    completedCount: 5,
+    totalExercises: 26,
+    lastActive: 'Hoy',
     recentAttempts: [
-      { exerciseId: 'linux-01', exerciseTitle: 'Crear archivo tamaño 0', command: 'touch arch_tam0', success: true, timestamp: 'Ayer 18:00' },
+      { exerciseId: 'linux-disk-01', exerciseTitle: 'Espacio df -h', command: 'df -h', success: true, timestamp: '10:00' },
     ],
   },
+
+  // DOCENTE COMPAÑERO (EJEMPLO)
   {
-    studentId: 'std-5',
-    studentName: 'Elena Valls (ZeroByte)',
-    studentEmail: 'evalls@iesbenigaslo.es',
-    initialPassword: 'dam' + Math.floor(1000 + Math.random() * 9000),
-    level: 1,
-    xp: 90,
-    streak: 1,
-    completedCount: 1,
-    totalExercises: 20,
+    studentId: 'teach-2',
+    studentName: 'Prof. M. Navarro (Sistemas)',
+    studentEmail: 'mnavarro@iesbenigaslo.es',
+    role: 'teacher',
+    course: '2SMR',
+    initialPassword: 'admin' + Math.floor(1000 + Math.random() * 9000),
+    level: 7,
+    xp: 8500,
+    streak: 50,
+    completedCount: 26,
+    totalExercises: 26,
     lastActive: 'Hace 1 hora',
-    recentAttempts: [
-      { exerciseId: 'win-01', exerciseTitle: 'Crear carpeta', command: 'mkdir Proyecto', success: true, timestamp: '13:00' },
-    ],
+    recentAttempts: [],
   },
 ];
 
@@ -158,6 +207,7 @@ export async function getCurrentUserSession(): Promise<UserProfile | null> {
           email: profile.email,
           name: profile.full_name || profile.email.split('@')[0],
           role: profile.role || 'student',
+          course: profile.course || '1DAM',
           xp: profile.xp || 0,
           level: profile.level || 1,
           streak: profile.streak || 0,
@@ -253,7 +303,6 @@ export async function fetchClassroomProgress(): Promise<StudentProgressRow[]> {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('role', 'student')
         .order('xp', { ascending: false });
 
       if (!error && data && data.length > 0) {
@@ -261,11 +310,13 @@ export async function fetchClassroomProgress(): Promise<StudentProgressRow[]> {
           studentId: st.id,
           studentName: st.full_name || st.email.split('@')[0],
           studentEmail: st.email,
+          role: (st.role as UserRole) || 'student',
+          course: (st.course as CourseGroup) || '1DAM',
           level: st.level || 1,
           xp: st.xp || 0,
           streak: st.streak || 0,
           completedCount: (st.completed_exercises || []).length,
-          totalExercises: 20,
+          totalExercises: 26,
           lastActive: 'Hoy',
           recentAttempts: [],
         }));
@@ -278,49 +329,52 @@ export async function fetchClassroomProgress(): Promise<StudentProgressRow[]> {
 }
 
 // =========================================================================
-// GESTIÓN DE USUARIOS DIRECTA DESDE LA WEB (SIN ABRIR SUPABASE)
+// GESTIÓN DE USUARIOS DIRECTA: ALUMNOS (1º DAM & 2º SMR) Y DOCENTES
 // =========================================================================
 
 export async function createStudentAccount(
   name: string,
   email: string,
-  tempPassword: string
+  tempPassword: string,
+  role: UserRole = 'student',
+  course: CourseGroup = '1DAM'
 ): Promise<{ success: boolean; message: string; student?: StudentProgressRow }> {
   const newStudentRow: StudentProgressRow = {
-    studentId: 'std-' + Date.now().toString(36),
+    studentId: (role === 'teacher' ? 'teach-' : 'std-') + Date.now().toString(36),
     studentName: name,
     studentEmail: email,
+    role,
+    course,
     initialPassword: tempPassword,
-    level: 1,
-    xp: 0,
-    streak: 0,
+    level: role === 'teacher' ? 7 : 1,
+    xp: role === 'teacher' ? 9999 : 0,
+    streak: role === 'teacher' ? 99 : 0,
     completedCount: 0,
-    totalExercises: 20,
+    totalExercises: 26,
     lastActive: 'Nunca',
     recentAttempts: [],
   };
 
-  // Always update local cache
   const list = getStoredStudents();
   list.unshift(newStudentRow);
   saveStoredStudents(list);
 
   if (isSupabaseConfigured && supabase) {
     try {
-      // Call Supabase RPC function for admin user creation
       const { data, error } = await supabase.rpc('admin_create_student', {
         student_email: email,
         student_password: tempPassword,
         student_name: name,
+        user_role: role,
+        student_course: course,
       });
 
       if (error) {
-        // Fallback: regular sign up if RPC not created yet
         const { error: signUpErr } = await supabase.auth.signUp({
           email,
           password: tempPassword,
           options: {
-            data: { full_name: name },
+            data: { full_name: name, role, course },
           },
         });
         if (signUpErr) {
@@ -335,15 +389,18 @@ export async function createStudentAccount(
     }
   }
 
+  const roleText = role === 'teacher' ? 'Docente' : `Alumno de ${course === '1DAM' ? '1º DAM' : '2º SMR'}`;
   return {
     success: true,
-    message: `Alumno "${name}" creado con éxito. Ya puede iniciar sesión.`,
+    message: `${roleText} "${name}" registrado correctamente. Ya puede iniciar sesión.`,
     student: newStudentRow,
   };
 }
 
 export async function bulkCreateStudents(
-  lines: string[]
+  lines: string[],
+  defaultCourse: CourseGroup = '1DAM',
+  defaultRole: UserRole = 'student'
 ): Promise<{ createdCount: number; errors: string[] }> {
   let created = 0;
   const errors: string[] = [];
@@ -352,13 +409,18 @@ export async function bulkCreateStudents(
     const trimmed = rawLine.trim();
     if (!trimmed) continue;
 
-    // Expected format: "Nombre, email, contraseña" or tab-separated
+    // Expected format: "Nombre, email, contraseña [, curso, rol]"
     const parts = trimmed.split(/[,;\t]+/).map((s) => s.trim());
     if (parts.length >= 2) {
       const name = parts[0];
       const email = parts[1];
       const password = parts[2] || 'ies' + Math.floor(1000 + Math.random() * 9000);
-      const res = await createStudentAccount(name, email, password);
+      const courseStr = parts[3]?.toUpperCase();
+      const course: CourseGroup = courseStr === '2SMR' || courseStr === 'SMR' ? '2SMR' : defaultCourse;
+      const roleStr = parts[4]?.toLowerCase();
+      const role: UserRole = roleStr === 'teacher' || roleStr === 'docente' || roleStr === 'profesor' ? 'teacher' : defaultRole;
+
+      const res = await createStudentAccount(name, email, password, role, course);
       if (res.success) {
         created++;
       } else {
@@ -387,13 +449,22 @@ export async function deleteStudent(studentId: string): Promise<boolean> {
 }
 
 // =========================================================================
-// TABLA DE RETOS Y RANKING DEL AULA (LEADERBOARD)
+// TABLA DE RETOS Y RANKING DEL AULA (LEADERBOARD MULTI-CURSO)
 // =========================================================================
 
-export async function fetchLeaderboard(currentUserId?: string): Promise<LeaderboardEntry[]> {
-  const students = await fetchClassroomProgress();
+export async function fetchLeaderboard(
+  currentUserId?: string,
+  courseFilter?: CourseGroup | 'TODOS'
+): Promise<LeaderboardEntry[]> {
+  const allUsers = await fetchClassroomProgress();
 
-  // Sort descending by XP and then completedCount
+  // Filter out teachers from the student competition leaderboard
+  let students = allUsers.filter((u) => u.role !== 'teacher');
+
+  if (courseFilter && courseFilter !== 'TODOS') {
+    students = students.filter((s) => s.course === courseFilter);
+  }
+
   const sorted = [...students].sort((a, b) => b.xp - a.xp || b.completedCount - a.completedCount);
 
   return sorted.map((st, index) => {
@@ -402,6 +473,7 @@ export async function fetchLeaderboard(currentUserId?: string): Promise<Leaderbo
       rank: index + 1,
       id: st.studentId,
       name: st.studentName,
+      course: st.course,
       avatar: index === 0 ? '👑' : index === 1 ? '🥈' : index === 2 ? '🥉' : '👾',
       xp: st.xp,
       level: st.level,

@@ -113,7 +113,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     : 'bg-cyan-950 text-cyan-400 border-cyan-700/60'
                 }`}
               >
-                1º DAM
+                1º DAM & 2º SMR
               </span>
             </div>
             <p className={`text-[11px] font-mono flex items-center gap-1.5 ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
@@ -278,8 +278,21 @@ export const Navbar: React.FC<NavbarProps> = ({
                 />
               </div>
             </div>
-            <div className={`hidden md:block text-[10px] font-mono ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
-              {currentRank.title}
+            <div className="flex flex-col items-end">
+              <div className={`hidden md:block text-[10px] font-mono ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
+                {currentRank.title}
+              </div>
+              <span
+                className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold border mt-0.5 ${
+                  user.role === 'teacher'
+                    ? 'bg-amber-950/80 text-amber-300 border-amber-800'
+                    : user.course === '2SMR'
+                    ? 'bg-purple-950/80 text-purple-300 border-purple-800'
+                    : 'bg-blue-950/80 text-blue-300 border-blue-800'
+                }`}
+              >
+                {user.role === 'teacher' ? 'Docente' : user.course === '2SMR' ? '2º SMR' : '1º DAM'}
+              </span>
             </div>
           </div>
 
