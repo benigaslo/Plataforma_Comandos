@@ -15,6 +15,7 @@ import {
   Sun,
   Moon,
   Zap,
+  LogIn,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -23,6 +24,7 @@ interface NavbarProps {
   onSelectOS: (os: OperatingSystem) => void;
   onOpenBadges: () => void;
   onOpenLeaderboard: () => void;
+  onOpenAuth: () => void;
   onToggleRole: () => void;
   onOpenTeacherPanel: () => void;
   soundEnabled: boolean;
@@ -37,6 +39,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectOS,
   onOpenBadges,
   onOpenLeaderboard,
+  onOpenAuth,
   onToggleRole,
   onOpenTeacherPanel,
   soundEnabled,
@@ -367,6 +370,31 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : (
               <VolumeX className="w-4 h-4 text-gray-400" />
             )}
+          </button>
+
+          {/* User Account / Iniciar Sesión Button */}
+          <button
+            onClick={() => {
+              sounds.playKey();
+              onOpenAuth();
+            }}
+            className={`flex items-center space-x-2 px-3 py-1.5 rounded-2xl border transition text-xs font-bold shadow-sm ${
+              isLight
+                ? 'bg-emerald-50 hover:bg-emerald-100 border-emerald-300 text-emerald-950'
+                : isMatrix
+                ? 'bg-[#00260e] hover:bg-[#003814] border-[#00ff66]/50 text-[#00ff66]'
+                : 'bg-gray-900 hover:bg-gray-800 border-cyan-500/40 text-cyan-200'
+            }`}
+            title="Iniciar sesión o cambiar de alumno"
+          >
+            <span className="text-base">{user.avatar || '👨‍💻'}</span>
+            <div className="flex flex-col text-left leading-tight">
+              <span className="font-bold truncate max-w-[85px] sm:max-w-[120px]">{user.name}</span>
+              <span className="text-[9px] opacity-75 font-mono">
+                {user.role === 'teacher' ? 'Docente' : user.course === '2SMR' ? '2º SMR' : '1º DAM'}
+              </span>
+            </div>
+            <LogIn className="w-3.5 h-3.5 opacity-60 ml-0.5" />
           </button>
 
           {/* Teacher Mode Button */}

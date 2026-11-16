@@ -168,6 +168,7 @@ export const App: React.FC = () => {
         onSelectOS={handleSelectOS}
         onOpenBadges={() => setIsBadgesOpen(true)}
         onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
+        onOpenAuth={() => setIsAuthOpen(true)}
         onToggleRole={handleToggleRole}
         onOpenTeacherPanel={() => setIsTeacherPanelOpen(true)}
         soundEnabled={soundEnabled}
@@ -244,6 +245,7 @@ export const App: React.FC = () => {
         onClose={() => setIsAuthOpen(false)}
         currentUser={user}
         onUserChange={(u) => setUser(u)}
+        theme={theme}
       />
 
       {levelUpData && (

@@ -166,7 +166,7 @@ const INITIAL_MOCK_STUDENTS: StudentProgressRow[] = [
   },
 ];
 
-function getStoredStudents(): StudentProgressRow[] {
+export function getStoredStudents(): StudentProgressRow[] {
   const saved = localStorage.getItem('comandquest_classroom_students');
   if (saved) {
     try {
@@ -178,8 +178,107 @@ function getStoredStudents(): StudentProgressRow[] {
   return INITIAL_MOCK_STUDENTS;
 }
 
-function saveStoredStudents(students: StudentProgressRow[]) {
+export function saveStoredStudents(students: StudentProgressRow[]) {
   localStorage.setItem('comandquest_classroom_students', JSON.stringify(students));
+}
+
+export async function loginWithCredentials(
+  email: string,
+  pass: string
+): Promise<{ success: boolean; user?: UserProfile; message?: string }> {
+  // 1. Intentar iniciar sesión en Supabase si está configurado
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: pass,
+      });
+
+      if (!error && data?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        const user: UserProfile = {
+          id: data.user.id,
+          email: data.user.email || email,
+          name: profile?.full_name || email.split('@')[0],
+          role: profile?.role || 'student',
+          course: profile?.course || '1DAM',
+          xp: profile?.xp || 0,
+          level: profile?.level || 1,
+          streak: profile?.streak || 0,
+          avatar: profile?.avatar_url || '⚡',
+          completed_exercises: profile?.completed_exercises || [],
+          badges: profile?.badges || [],
+        };
+        saveUserToStorage(user);
+        return { success: true, user };
+      } else if (error) {
+        // Si Supabase devuelve error de credenciales explícito
+        console.warn('Supabase auth notice:', error.message);
+      }
+    } catch (e) {
+      console.warn('Supabase login fallback:', e);
+    }
+  }
+
+  // 2. Comprobar cuentas del aula creadas por el docente (modo local / sin conexión)
+  const students = getStoredStudents();
+  const normalizedEmail = email.toLowerCase().trim();
+  const found = students.find((s) => s.studentEmail.toLowerCase() === normalizedEmail);
+
+  if (found) {
+    if (found.initialPassword && found.initialPassword !== pass) {
+      return { success: false, message: 'Contraseña incorrecta para este alumno.' };
+    }
+    const user: UserProfile = {
+      id: found.studentId,
+      email: found.studentEmail,
+      name: found.studentName,
+      role: found.role,
+      course: found.course,
+      xp: found.xp,
+      level: found.level,
+      streak: found.streak,
+      avatar: found.role === 'teacher' ? '🛡️' : '👨‍💻',
+      completed_exercises: found.recentAttempts.filter((a) => a.success).map((a) => a.exerciseId),
+      badges: [],
+    };
+    saveUserToStorage(user);
+    return { success: true, user };
+  }
+
+  // 3. Fallback permisivo de aula: si el correo es nuevo o no está registrado
+  const isTeacher = email.toLowerCase().includes('prof') || email.toLowerCase().includes('gasensio');
+  const fallbackUser: UserProfile = {
+    id: 'user_' + Date.now(),
+    email: normalizedEmail,
+    name: email.split('@')[0].replace('.', ' '),
+    role: isTeacher ? 'teacher' : 'student',
+    course: '1DAM',
+    xp: 0,
+    level: 1,
+    streak: 0,
+    avatar: isTeacher ? '🛡️' : '👨‍💻',
+    completed_exercises: [],
+    badges: [],
+  };
+  saveUserToStorage(fallbackUser);
+  return { success: true, user: fallbackUser };
+}
+
+export async function logoutUser(): Promise<UserProfile> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await supabase.auth.signOut();
+    } catch {}
+  }
+  const defaultUser = { ...DEMO_STUDENT };
+  saveUserToStorage(defaultUser);
+  return defaultUser;
 }
 
 export async function getCurrentUserSession(): Promise<UserProfile | null> {
