@@ -11,25 +11,25 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
-// Initial mock state for demo / standalone mode
+// Estado inicial sin alumnos de ejemplo para que el aula empiece 100% limpia
 const DEMO_STUDENT: UserProfile = {
-  id: 'demo-student-id',
-  email: 'alumno.dam@iesbenigaslo.es',
-  name: 'Alumno 1º DAM',
+  id: 'guest-student-id',
+  email: 'invitado@comandquest.local',
+  name: 'Alumno Invitado',
   role: 'student',
   course: '1DAM',
-  xp: 350,
-  level: 2,
-  streak: 3,
+  xp: 0,
+  level: 1,
+  streak: 0,
   avatar: '⚡',
-  completed_exercises: ['win-01', 'linux-01', 'linux-02', 'win-02'],
-  badges: ['first_command'],
+  completed_exercises: [],
+  badges: [],
 };
 
 const DEMO_TEACHER: UserProfile = {
   id: 'demo-teacher-id',
-  email: 'gasensio@iesbenigaslo.es',
-  name: 'Prof. G. Asensio',
+  email: 'profesor@comandquest.local',
+  name: 'Profesor (Docente)',
   role: 'teacher',
   course: '1DAM',
   xp: 9999,
@@ -40,146 +40,49 @@ const DEMO_TEACHER: UserProfile = {
   badges: ['level_5_sysadmin'],
 };
 
-const INITIAL_MOCK_STUDENTS: StudentProgressRow[] = [
-  // 1º DAM
-  {
-    studentId: 'std-1',
-    studentName: 'Beatriz Navarro (CyberTux)',
-    studentEmail: 'bnavarro@iesbenigaslo.es',
-    role: 'student',
-    course: '1DAM',
-    initialPassword: 'dam' + Math.floor(1000 + Math.random() * 9000),
-    level: 4,
-    xp: 920,
-    streak: 8,
-    completedCount: 14,
-    totalExercises: 26,
-    lastActive: 'Hace 5 min',
-    recentAttempts: [
-      { exerciseId: 'win-08', exerciseTitle: 'Eliminar recursivo', command: 'rmdir /s /q Proyecto', success: true, timestamp: '14:15' },
-      { exerciseId: 'linux-12', exerciseTitle: 'Árbol anidado mkdir -p', command: 'mkdir -p PRUEBA/dir3/dir31/dir311', success: true, timestamp: '14:30' },
-    ],
-  },
-  {
-    studentId: 'std-2',
-    studentName: 'Alejandro Martínez (RootHero)',
-    studentEmail: 'amartinez@iesbenigaslo.es',
-    role: 'student',
-    course: '1DAM',
-    initialPassword: 'dam' + Math.floor(1000 + Math.random() * 9000),
-    level: 3,
-    xp: 540,
-    streak: 5,
-    completedCount: 9,
-    totalExercises: 26,
-    lastActive: 'Hace 12 min',
-    recentAttempts: [
-      { exerciseId: 'linux-06', exerciseTitle: 'Listar todo con detalle', command: 'ls -la /', success: true, timestamp: '15:10' },
-    ],
-  },
-  {
-    studentId: 'std-4',
-    studentName: 'Carlos Gómez (BashRunner)',
-    studentEmail: 'cgomez@iesbenigaslo.es',
-    role: 'student',
-    course: '1DAM',
-    initialPassword: 'dam' + Math.floor(1000 + Math.random() * 9000),
-    level: 2,
-    xp: 220,
-    streak: 2,
-    completedCount: 4,
-    totalExercises: 26,
-    lastActive: 'Ayer',
-    recentAttempts: [
-      { exerciseId: 'linux-01', exerciseTitle: 'Crear archivo tamaño 0', command: 'touch arch_tam0', success: true, timestamp: 'Ayer 18:00' },
-    ],
-  },
-
-  // 2º SMR
-  {
-    studentId: 'std-smr-1',
-    studentName: 'Marcos Rius (NetAdmin)',
-    studentEmail: 'mrius@iesbenigaslo.es',
-    role: 'student',
-    course: '2SMR',
-    initialPassword: 'smr' + Math.floor(1000 + Math.random() * 9000),
-    level: 5,
-    xp: 1450,
-    streak: 11,
-    completedCount: 19,
-    totalExercises: 26,
-    lastActive: 'Hace 20 min',
-    recentAttempts: [
-      { exerciseId: 'linux-raid1-mdadm', exerciseTitle: 'Configuración RAID 1', command: 'mdadm --create /dev/md0 --level=1 --raid-devices=2 /dev/sdb1 /dev/sdc1', success: true, timestamp: '11:20' },
-    ],
-  },
-  {
-    studentId: 'std-3',
-    studentName: 'Daniela Soler (NetWalker)',
-    studentEmail: 'dsoler@iesbenigaslo.es',
-    role: 'student',
-    course: '2SMR',
-    initialPassword: 'smr' + Math.floor(1000 + Math.random() * 9000),
-    level: 3,
-    xp: 410,
-    streak: 3,
-    completedCount: 6,
-    totalExercises: 26,
-    lastActive: 'Hace 35 min',
-    recentAttempts: [
-      { exerciseId: 'win-04', exerciseTitle: 'Crear subcarpetas', command: 'mkdir Imágenes Documentos', success: true, timestamp: '14:40' },
-    ],
-  },
-  {
-    studentId: 'std-smr-2',
-    studentName: 'Joan Vicent (DiskMaster)',
-    studentEmail: 'jvicent@iesbenigaslo.es',
-    role: 'student',
-    course: '2SMR',
-    initialPassword: 'smr' + Math.floor(1000 + Math.random() * 9000),
-    level: 2,
-    xp: 320,
-    streak: 4,
-    completedCount: 5,
-    totalExercises: 26,
-    lastActive: 'Hoy',
-    recentAttempts: [
-      { exerciseId: 'linux-disk-01', exerciseTitle: 'Espacio df -h', command: 'df -h', success: true, timestamp: '10:00' },
-    ],
-  },
-
-  // DOCENTE COMPAÑERO (EJEMPLO)
-  {
-    studentId: 'teach-2',
-    studentName: 'Prof. M. Navarro (Sistemas)',
-    studentEmail: 'mnavarro@iesbenigaslo.es',
-    role: 'teacher',
-    course: '2SMR',
-    initialPassword: 'admin' + Math.floor(1000 + Math.random() * 9000),
-    level: 7,
-    xp: 8500,
-    streak: 50,
-    completedCount: 26,
-    totalExercises: 26,
-    lastActive: 'Hace 1 hora',
-    recentAttempts: [],
-  },
-];
+const INITIAL_MOCK_STUDENTS: StudentProgressRow[] = [];
 
 export function getStoredStudents(): StudentProgressRow[] {
-  const saved = localStorage.getItem('comandquest_classroom_students');
-  if (saved) {
+  // 1. Almacén limpio v2
+  const savedV2 = localStorage.getItem('comandquest_classroom_students_v2');
+  if (savedV2) {
     try {
-      return JSON.parse(saved);
+      return JSON.parse(savedV2);
     } catch {
       // fallback
     }
   }
+
+  // 2. Limpieza de versiones anteriores: si había usuarios mock de ejemplo antiguos, eliminarlos automáticamente
+  const legacy = localStorage.getItem('comandquest_classroom_students');
+  if (legacy) {
+    try {
+      const parsed: StudentProgressRow[] = JSON.parse(legacy);
+      const mockSampleEmails = [
+        'bnavarro@iesbenigaslo.es',
+        'amartinez@iesbenigaslo.es',
+        'cgomez@iesbenigaslo.es',
+        'mrius@iesbenigaslo.es',
+        'dsoler@iesbenigaslo.es',
+        'jvicent@iesbenigaslo.es',
+        'mnavarro@iesbenigaslo.es',
+        'alumno.dam@iesbenigaslo.es',
+      ];
+      // Conservar solo usuarios reales que haya creado manualmente el docente
+      const onlyReal = parsed.filter((s) => !mockSampleEmails.includes(s.studentEmail.toLowerCase()));
+      localStorage.setItem('comandquest_classroom_students_v2', JSON.stringify(onlyReal));
+      localStorage.removeItem('comandquest_classroom_students');
+      return onlyReal;
+    } catch {
+      localStorage.removeItem('comandquest_classroom_students');
+    }
+  }
+
   return INITIAL_MOCK_STUDENTS;
 }
 
 export function saveStoredStudents(students: StudentProgressRow[]) {
-  localStorage.setItem('comandquest_classroom_students', JSON.stringify(students));
+  localStorage.setItem('comandquest_classroom_students_v2', JSON.stringify(students));
 }
 
 export async function loginWithCredentials(

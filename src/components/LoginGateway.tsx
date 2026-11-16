@@ -63,6 +63,8 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
     const first = list.find((s) => s.course === selectedCourse && s.role !== 'teacher');
     if (first) {
       setStudentEmail(first.email);
+    } else {
+      setStudentEmail('');
     }
   }, [selectedCourse]);
 
@@ -431,7 +433,7 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
                       }`}
                     >
                       {filteredStudents.length === 0 ? (
-                        <option value="">No hay alumnos cargados en este grupo</option>
+                        <option value="">Aún no hay alumnos dados de alta en este grupo</option>
                       ) : (
                         filteredStudents.map((st) => (
                           <option key={st.email} value={st.email}>
@@ -440,6 +442,15 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
                         ))
                       )}
                     </select>
+
+                    {filteredStudents.length === 0 && (
+                      <p className={`text-[11px] mt-1.5 flex items-center gap-1.5 font-mono p-2 rounded-xl border ${
+                        isLight ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-amber-950/40 border-amber-800/60 text-amber-300'
+                      }`}>
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+                        <span>Aún no hay alumnos registrados en este curso. El docente puede crearlos desde "Acceso Docente".</span>
+                      </p>
+                    )}
                   </div>
 
                   {/* Password Input */}
