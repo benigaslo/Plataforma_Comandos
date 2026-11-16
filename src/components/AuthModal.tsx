@@ -24,7 +24,7 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentUser: UserProfile | null;
-  onUserChange: (user: UserProfile) => void;
+  onUserChange: (user: UserProfile | null) => void;
   theme?: ThemeMode;
 }
 
@@ -128,12 +128,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleLogout = async () => {
     sounds.playKey();
-    const def = await logoutUser();
-    onUserChange(def);
-    setSuccessMsg('Has cerrado sesión correctamente');
-    setTimeout(() => {
-      onClose();
-    }, 600);
+    await logoutUser();
+    onUserChange(null);
+    onClose();
   };
 
   const selectDemoRole = (role: 'student' | 'teacher') => {

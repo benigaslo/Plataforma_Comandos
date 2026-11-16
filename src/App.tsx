@@ -18,9 +18,11 @@ import { TeacherPanel } from './components/TeacherPanel';
 import { AuthModal } from './components/AuthModal';
 import { LevelUpModal } from './components/LevelUpModal';
 import { MatrixRain } from './components/MatrixRain';
+import { LoginGateway } from './components/LoginGateway';
 
 export const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
   const [currentOS, setCurrentOS] = useState<OperatingSystem>('linux');
 
   // Dynamic exercise catalog (base + custom created by teacher)
@@ -69,6 +71,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     getCurrentUserSession().then((u) => {
       if (u) setUser(u);
+      setSessionChecked(true);
     });
   }, []);
 
@@ -146,11 +149,22 @@ export const App: React.FC = () => {
     setUser(updated);
   };
 
-  if (!user) {
+  if (!sessionChecked) {
     return (
       <div className="min-h-screen bg-[#030805] flex items-center justify-center text-[#00ff66] font-mono text-sm matrix-glow">
         INICIALIZANDO COMANDQUEST...
       </div>
+    );
+  }
+
+  // If no user is logged in, show initial Login Gateway
+  if (!user) {
+    return (
+      <LoginGateway
+        onLoginSuccess={(authenticatedUser) => setUser(authenticatedUser)}
+        theme={theme}
+        onSelectTheme={handleSelectTheme}
+      />
     );
   }
 

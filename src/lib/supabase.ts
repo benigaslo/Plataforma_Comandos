@@ -270,15 +270,23 @@ export async function loginWithCredentials(
   return { success: true, user: fallbackUser };
 }
 
-export async function logoutUser(): Promise<UserProfile> {
+export async function logoutUser(): Promise<void> {
   if (isSupabaseConfigured && supabase) {
     try {
       await supabase.auth.signOut();
     } catch {}
   }
-  const defaultUser = { ...DEMO_STUDENT };
-  saveUserToStorage(defaultUser);
-  return defaultUser;
+  localStorage.removeItem('comandquest_active_user');
+}
+
+export function loginAsGuest(): UserProfile {
+  const guest: UserProfile = {
+    ...DEMO_STUDENT,
+    name: 'Alumno Invitado',
+    email: 'invitado@iesbenigaslo.es',
+  };
+  saveUserToStorage(guest);
+  return guest;
 }
 
 export async function getCurrentUserSession(): Promise<UserProfile | null> {
@@ -292,33 +300,39 @@ export async function getCurrentUserSession(): Promise<UserProfile | null> {
   }
 
   if (isSupabaseConfigured && supabase) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
 
-      if (profile) {
-        return {
-          id: profile.id,
-          email: profile.email,
-          name: profile.full_name || profile.email.split('@')[0],
-          role: profile.role || 'student',
-          course: profile.course || '1DAM',
-          xp: profile.xp || 0,
-          level: profile.level || 1,
-          streak: profile.streak || 0,
-          avatar: profile.avatar_url || '⚡',
-          completed_exercises: profile.completed_exercises || [],
-          badges: profile.badges || [],
-        };
+        if (profile) {
+          const loaded: UserProfile = {
+            id: profile.id,
+            email: profile.email,
+            name: profile.full_name || profile.email.split('@')[0],
+            role: profile.role || 'student',
+            course: profile.course || '1DAM',
+            xp: profile.xp || 0,
+            level: profile.level || 1,
+            streak: profile.streak || 0,
+            avatar: profile.avatar_url || '⚡',
+            completed_exercises: profile.completed_exercises || [],
+            badges: profile.badges || [],
+          };
+          saveUserToStorage(loaded);
+          return loaded;
+        }
       }
+    } catch {
+      // fallback
     }
   }
 
-  return DEMO_STUDENT;
+  return null;
 }
 
 export function saveUserToStorage(user: UserProfile) {
