@@ -17,6 +17,7 @@ import { LeaderboardModal } from './components/LeaderboardModal';
 import { TeacherPanel } from './components/TeacherPanel';
 import { AuthModal } from './components/AuthModal';
 import { LevelUpModal } from './components/LevelUpModal';
+import { MatrixRain } from './components/MatrixRain';
 
 export const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -38,6 +39,13 @@ export const App: React.FC = () => {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [levelUpData, setLevelUpData] = useState<{ newLevel: number; newXp: number } | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(() => sounds.isEnabled());
+  
+  // Matrix theme state (default to true to showcase the Matrix aesthetic!)
+  const [matrixMode, setMatrixMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem('comandquest_matrix');
+    return saved !== null ? saved === 'true' : true;
+  });
+
   const [crtMode, setCrtMode] = useState<boolean>(() => {
     return localStorage.getItem('comandquest_crt') === 'true';
   });
@@ -112,6 +120,12 @@ export const App: React.FC = () => {
     setSoundEnabled(newState);
   };
 
+  const handleToggleMatrix = () => {
+    const next = !matrixMode;
+    setMatrixMode(next);
+    localStorage.setItem('comandquest_matrix', String(next));
+  };
+
   const handleToggleCrt = () => {
     const next = !crtMode;
     setCrtMode(next);
@@ -127,8 +141,8 @@ export const App: React.FC = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center text-cyan-400 font-mono text-sm">
-        INICIALIZANDO COMANDQUEST CYBER...
+      <div className="min-h-screen bg-[#030805] flex items-center justify-center text-[#00ff66] font-mono text-sm matrix-glow">
+        CONECTANDO AL NODO MATRIZ IES BENIGASLO...
       </div>
     );
   }
@@ -136,7 +150,14 @@ export const App: React.FC = () => {
   const isCompleted = user.completed_exercises.includes(activeExercise.id);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#070b14] text-gray-100 selection:bg-cyan-500 selection:text-black">
+    <div
+      className={`min-h-screen flex flex-col relative selection:bg-[#00ff66] selection:text-black transition-colors duration-500 ${
+        matrixMode ? 'bg-[#030805] text-[#d4ffe0]' : 'bg-[#070b14] text-gray-100'
+      }`}
+    >
+      {/* Background Matrix Digital Rain Animation */}
+      {matrixMode && <MatrixRain opacity={0.25} />}
+
       {/* Top Navigation Bar */}
       <Navbar
         user={user}
@@ -148,10 +169,12 @@ export const App: React.FC = () => {
         onOpenTeacherPanel={() => setIsTeacherPanelOpen(true)}
         soundEnabled={soundEnabled}
         onToggleSound={handleToggleSound}
+        matrixMode={matrixMode}
+        onToggleMatrix={handleToggleMatrix}
       />
 
       {/* Main Workspace Layout */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 relative z-10">
         {/* Left Column: Curriculum Modules List (4 cols) */}
         <aside className="lg:col-span-4 h-[400px] lg:h-[calc(100vh-95px)]">
           <ExerciseList

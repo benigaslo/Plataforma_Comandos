@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply antialiased bg-[#070b14] text-gray-100;
+    @apply antialiased bg-[#030805] text-gray-100;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
@@ -20,16 +20,16 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(3, 15, 6, 0.7);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(34, 211, 238, 0.4);
+  background: rgba(0, 255, 102, 0.4);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(34, 211, 238, 0.8);
+  background: rgba(0, 255, 102, 0.9);
 }
 
 /* MODO FRIKI: CRT SCANLINES & RETRO MATRIX MONITOR */
@@ -43,7 +43,7 @@
   display: block;
   position: absolute;
   top: 0; left: 0; bottom: 0; right: 0;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 50%), linear-gradient(90deg, rgba(0, 255, 100, 0.03), rgba(0, 0, 0, 0.02), rgba(0, 255, 100, 0.03));
   z-index: 20;
   background-size: 100% 3px, 3px 100%;
   pointer-events: none;
@@ -54,21 +54,30 @@
   display: block;
   position: absolute;
   top: 0; left: 0; bottom: 0; right: 0;
-  background: radial-gradient(circle, transparent 65%, rgba(0, 0, 0, 0.5) 100%);
+  background: radial-gradient(circle, transparent 65%, rgba(0, 0, 0, 0.6) 100%);
   pointer-events: none;
   z-index: 21;
 }
 
-/* Neon glow animations */
-@keyframes neonPulse {
+/* Matrix Neon Glow effects */
+.matrix-glow {
+  text-shadow: 0 0 8px #00ff66, 0 0 18px rgba(0, 255, 102, 0.5);
+}
+
+.matrix-border-glow {
+  box-shadow: 0 0 15px rgba(0, 255, 102, 0.25), inset 0 0 15px rgba(0, 255, 102, 0.05);
+}
+
+/* Matrix Pill pulse */
+@keyframes matrixPulse {
   0%, 100% {
-    box-shadow: 0 0 15px rgba(34, 211, 238, 0.3);
+    box-shadow: 0 0 10px rgba(0, 255, 102, 0.4);
   }
   50% {
-    box-shadow: 0 0 25px rgba(34, 211, 238, 0.6);
+    box-shadow: 0 0 20px rgba(0, 255, 102, 0.8);
   }
 }
 
-.neon-glow {
-  animation: neonPulse 3s infinite;
+.matrix-pulse {
+  animation: matrixPulse 2.5s infinite;
 }
