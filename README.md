@@ -1,6 +1,6 @@
 # 💻 ComandQuest | Plataforma Educativa de Comandos (Linux & Windows)
 
-Plataforma interactiva gamificada estilo videojuego para el aprendizaje gradual de comandos de consola tanto en **Linux (Bash)** como en **Windows (CMD / PowerShell)**, diseñada para el alumnado de **1º DAM - Sistemas Informáticos (IES Benigaslo)** dentro del **RA3 (Gestión de archivos y almacenamiento)**.
+Plataforma interactiva gamificada estilo videojuego para el aprendizaje y entrenamiento práctico de comandos de consola tanto en **Linux (Bash)** como en **Windows (CMD / PowerShell)**, diseñada para el alumnado de **Informática (1º DAM, 1º DAW y 2º SMR - IES Benigaslo)**.
 
 Desplegable de forma 100% gratuita y estática en **GitHub Pages**, respaldada por **Supabase** para el control de acceso, persistencia de calificaciones y panel docente.
 

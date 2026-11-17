@@ -125,7 +125,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   isLight ? 'bg-emerald-600' : isMatrix ? 'bg-[#00ff66]' : 'bg-emerald-400'
                 }`}
               />
-              IES Benigaslo • RA3 Gestión de Archivos y Almacenamiento
+              IES Benigaslo • Laboratorio Práctico de Comandos (Linux & Windows)
             </p>
           </div>
         </div>
