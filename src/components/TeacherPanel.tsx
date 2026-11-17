@@ -51,6 +51,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [courseFilter, setCourseFilter] = useState<'TODOS' | '1DAM' | '1DAW' | '2SMR' | 'TEACHERS'>('TODOS');
   const [selectedStudent, setSelectedStudent] = useState<StudentProgressRow | null>(null);
+  const [deletingEmail, setDeletingEmail] = useState<string | null>(null);
 
   // Form single user
   const [newName, setNewName] = useState('');
@@ -183,8 +184,6 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
       setBulkMsg(`❌ No se pudieron registrar usuarios: ${errors.join(', ')}`);
     }
   };
-
-  const [deletingEmail, setDeletingEmail] = useState<string | null>(null);
 
   const handleDelete = async (id: string, name: string, email?: string) => {
     if (email && email.toLowerCase().trim() === 'g.asensiosanagusti@edu.gva.es') {

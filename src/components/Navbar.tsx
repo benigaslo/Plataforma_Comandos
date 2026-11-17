@@ -411,8 +411,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Teacher Mode Button (Solo visible para usuarios con rol docente) */}
           {user.role === 'teacher' && (
             <button
-              onClick={onOpenTeacherPanel}
-              className="flex items-center space-x-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-3.5 py-1.5 rounded-2xl text-xs font-black shadow-lg shadow-indigo-500/30 transition"
+              onClick={() => {
+                sounds.playKey();
+                onOpenTeacherPanel();
+              }}
+              className="flex items-center space-x-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-3.5 py-1.5 rounded-2xl text-xs font-black shadow-lg shadow-indigo-500/30 transition cursor-pointer"
               title="Abrir Panel de Control Docente"
             >
               <UserCheck className="w-4 h-4" />
