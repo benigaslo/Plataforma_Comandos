@@ -18,7 +18,7 @@ export const BADGES: Badge[] = [
     category: 'linux',
     xpBonus: 100,
     condition: (user) =>
-      user.completed_exercises.filter((id) => id.startsWith('linux')).length >= 3,
+      user.completed_exercises.filter((id) => id.startsWith('linux') || id.startsWith('custom-linux')).length >= 3,
   },
   {
     id: 'windows_explorer',
@@ -28,7 +28,7 @@ export const BADGES: Badge[] = [
     category: 'windows',
     xpBonus: 100,
     condition: (user) =>
-      user.completed_exercises.filter((id) => id.startsWith('win')).length >= 3,
+      user.completed_exercises.filter((id) => id.startsWith('win') || id.startsWith('custom-win')).length >= 3,
   },
   {
     id: 'folder_architect',
@@ -50,7 +50,7 @@ export const BADGES: Badge[] = [
     category: 'general',
     xpBonus: 150,
     condition: (user) => {
-      const fileEx = ['win-03', 'win-05', 'win-12', 'linux-13', 'linux-14', 'linux-16'];
+      const fileEx = ['win-03', 'win-05', 'win-12', 'linux-13', 'linux-cp-preserve', 'linux-18'];
       return fileEx.filter((id) => user.completed_exercises.includes(id)).length >= 3;
     },
   },
@@ -62,7 +62,7 @@ export const BADGES: Badge[] = [
     category: 'general',
     xpBonus: 150,
     condition: (user) => {
-      const delEx = ['win-06', 'win-07', 'win-08', 'win-16', 'linux-19', 'linux-27'];
+      const delEx = ['win-06', 'win-07', 'win-08', 'win-16', 'linux-19'];
       return delEx.filter((id) => user.completed_exercises.includes(id)).length >= 3;
     },
   },
@@ -74,17 +74,17 @@ export const BADGES: Badge[] = [
     category: 'linux',
     xpBonus: 200,
     condition: (user) =>
-      user.completed_exercises.filter((id) => id.includes('perm') || id === 'linux-29').length >= 1,
+      user.completed_exercises.filter((id) => id.includes('perm') || id.includes('chmod') || id === 'linux-29').length >= 1,
   },
   {
     id: 'pipe_master',
     title: 'Maestro de Tuberías y Filtros',
-    description: 'Filtra y procesa información con grep y wc.',
+    description: 'Filtra y procesa información con grep, wc, tuberías o filtros.',
     icon: '🔍',
     category: 'linux',
     xpBonus: 200,
     condition: (user) =>
-      user.completed_exercises.filter((id) => id.includes('grep') || id.includes('wc')).length >= 2,
+      user.completed_exercises.filter((id) => id.includes('grep') || id.includes('wc') || id.includes('pipe') || id.includes('cut') || id.includes('sort')).length >= 2,
   },
   {
     id: 'streak_5',

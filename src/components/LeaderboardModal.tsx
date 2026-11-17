@@ -31,15 +31,23 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    let isCancelled = false;
     if (isOpen) {
       setLoading(true);
       fetchLeaderboard(currentUserId, selectedCourse)
         .then((data) => {
-          setEntries(data);
-          setLoading(false);
+          if (!isCancelled) {
+            setEntries(data);
+            setLoading(false);
+          }
         })
-        .catch(() => setLoading(false));
+        .catch(() => {
+          if (!isCancelled) setLoading(false);
+        });
     }
+    return () => {
+      isCancelled = true;
+    };
   }, [isOpen, currentUserId, selectedCourse]);
 
   if (!isOpen) return null;
@@ -54,20 +62,38 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   const renderCourseBadge = (course?: CourseGroup) => {
     if (course === '1DAW') {
       return (
-        <span className="text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold border bg-emerald-950 text-emerald-300 border-emerald-800">
+        <span
+          className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold border ${
+            isLight
+              ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+              : 'bg-emerald-950 text-emerald-300 border-emerald-800'
+          }`}
+        >
           1º DAW
         </span>
       );
     }
     if (course === '2SMR') {
       return (
-        <span className="text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold border bg-purple-950 text-purple-300 border-purple-800">
+        <span
+          className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold border ${
+            isLight
+              ? 'bg-purple-100 text-purple-800 border-purple-300'
+              : 'bg-purple-950 text-purple-300 border-purple-800'
+          }`}
+        >
           2º SMR
         </span>
       );
     }
     return (
-      <span className="text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold border bg-blue-950 text-blue-300 border-blue-800">
+      <span
+        className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold border ${
+          isLight
+            ? 'bg-blue-100 text-blue-800 border-blue-300'
+            : 'bg-blue-950 text-blue-300 border-blue-800'
+        }`}
+      >
         1º DAM
       </span>
     );
@@ -318,8 +344,8 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
           {/* TOP 3 PODIUM */}
           {!loading && entries.length > 0 && (
             <div className="grid grid-cols-3 gap-3 pt-4 pb-2 items-end">
-              {/* 2nd Place */}
-              {top3[1] && (
+              {/* 2nd Place or Placeholder */}
+              {top3[1] ? (
                 <div
                   className={`border rounded-2xl p-4 text-center space-y-2 h-44 flex flex-col justify-end relative shadow-lg ${
                     isLight
@@ -343,7 +369,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                   >
                     {top3[1].rankTitle}
                   </div>
-                  <div className="text-base font-black text-amber-400 font-mono">
+                  <div className={`text-base font-black font-mono ${isLight ? 'text-amber-800' : 'text-amber-400'}`}>
                     {top3[1].xp} <span className="text-[10px] text-gray-400 font-normal">XP</span>
                   </div>
                   <div
@@ -361,6 +387,8 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                     2º Lugar
                   </div>
                 </div>
+              ) : (
+                <div />
               )}
 
               {/* 1st Place (Crown) */}
@@ -385,10 +413,12 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                   <div className="flex items-center justify-center gap-1">
                     {renderCourseBadge(top3[0].course)}
                   </div>
-                  <div className="text-[11px] text-amber-400 font-mono font-bold">{top3[0].rankTitle}</div>
-                  <div className="text-xl font-black text-amber-400 font-mono flex items-center justify-center gap-1">
-                    <Sparkles className="w-4 h-4 text-amber-400" />
-                    {top3[0].xp} <span className="text-xs text-amber-500/80">XP</span>
+                  <div className={`text-[11px] font-mono font-bold ${isLight ? 'text-amber-800' : 'text-amber-400'}`}>
+                    {top3[0].rankTitle}
+                  </div>
+                  <div className={`text-xl font-black font-mono flex items-center justify-center gap-1 ${isLight ? 'text-amber-800' : 'text-amber-400'}`}>
+                    <Sparkles className={`w-4 h-4 ${isLight ? 'text-amber-700' : 'text-amber-400'}`} />
+                    {top3[0].xp} <span className={`text-xs ${isLight ? 'text-amber-700' : 'text-amber-500/80'}`}>XP</span>
                   </div>
                   <div
                     className={`text-xs font-mono font-bold flex items-center justify-center gap-1 ${
@@ -411,8 +441,8 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 </div>
               )}
 
-              {/* 3rd Place */}
-              {top3[2] && (
+              {/* 3rd Place or Placeholder */}
+              {top3[2] ? (
                 <div
                   className={`border rounded-2xl p-4 text-center space-y-2 h-40 flex flex-col justify-end relative shadow-lg ${
                     isLight
@@ -440,7 +470,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                   >
                     {top3[2].rankTitle}
                   </div>
-                  <div className="text-base font-black text-amber-400 font-mono">
+                  <div className={`text-base font-black font-mono ${isLight ? 'text-amber-800' : 'text-amber-400'}`}>
                     {top3[2].xp} <span className="text-[10px] text-gray-400 font-normal">XP</span>
                   </div>
                   <div
@@ -458,6 +488,8 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                     3º Lugar
                   </div>
                 </div>
+              ) : (
+                <div />
               )}
             </div>
           )}
@@ -553,8 +585,8 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                         {item.completedCount}
                       </div>
 
-                      <div className="w-20 text-right font-black text-amber-400">
-                        {item.xp} <span className={`text-[10px] font-normal ${isLight ? 'text-slate-400' : 'text-gray-500'}`}>XP</span>
+                      <div className={`w-20 text-right font-black ${isLight ? 'text-amber-800' : 'text-amber-400'}`}>
+                        {item.xp} <span className={`text-[10px] font-normal ${isLight ? 'text-slate-500' : 'text-gray-500'}`}>XP</span>
                       </div>
                     </div>
                   </div>

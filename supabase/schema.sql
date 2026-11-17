@@ -154,6 +154,14 @@ as $$
 declare
   new_user_id uuid;
 begin
+  -- Verificar autorización si hay un usuario autenticado (evita que un alumno invoque la RPC)
+  if auth.uid() is not null and not exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role = 'teacher'
+  ) then
+    return json_build_object('success', false, 'error', 'No autorizado: solo los docentes pueden dar de alta usuarios');
+  end if;
+
   -- Comprobar si el usuario ya existe
   if exists (select 1 from auth.users where email = student_email) then
     return json_build_object('success', false, 'error', 'El correo ya está registrado en Supabase');
@@ -225,6 +233,14 @@ security definer
 set search_path = public, extensions, auth
 as $$
 begin
+  -- Verificar autorización del docente si hay un usuario autenticado
+  if auth.uid() is not null and not exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role = 'teacher'
+  ) then
+    return json_build_object('success', false, 'error', 'No autorizado: solo los docentes pueden eliminar usuarios');
+  end if;
+
   -- Borrar intentos y progreso de submissions
   delete from public.submissions
   where user_id in (
@@ -266,3 +282,25 @@ create policy "Los docentes pueden eliminar perfiles"
       where id = auth.uid() and role = 'teacher'
     )
   );
+
+-- 9. TRIGGER DE SEGURIDAD: EVITAR ESCALADA DE PRIVILEGIOS EN PROFILES
+create or replace function public.protect_profile_role()
+returns trigger as $$
+begin
+  if old.role != new.role then
+    if not exists (
+      select 1 from public.profiles
+      where id = auth.uid() and role = 'teacher'
+    ) then
+      new.role := old.role;
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists tr_protect_profile_role on public.profiles;
+create trigger tr_protect_profile_role
+  before update on public.profiles
+  for each row execute procedure public.protect_profile_role();
+

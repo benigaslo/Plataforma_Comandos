@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { UserProfile, ThemeMode, CourseGroup } from '../types';
 import {
   loginWithCredentials,
@@ -80,9 +80,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     };
   }, [isOpen]);
 
-  const filteredStudents = availableStudents.filter(
-    (s) => s.course === selectedCourse && s.role !== 'teacher' && !isTeacherAccount(s.email, s.role)
-  );
+  const filteredStudents = useMemo(() => {
+    return availableStudents.filter(
+      (s) => s.course === selectedCourse && s.role !== 'teacher' && !isTeacherAccount(s.email, s.role)
+    );
+  }, [availableStudents, selectedCourse]);
 
   useEffect(() => {
     if (filteredStudents.length > 0) {
@@ -92,7 +94,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     } else {
       setSelectedStudentEmail('');
     }
-  }, [selectedCourse, filteredStudents, selectedStudentEmail]);
+  }, [filteredStudents]);
 
   if (!isOpen) return null;
 

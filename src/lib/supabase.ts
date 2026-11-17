@@ -1,6 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { UserProfile, StudentProgressRow, LeaderboardEntry, UserRole, CourseGroup } from '../types';
 import { getRankForXp } from '../data/badges';
+import { getAllExercises } from '../data/exercises';
 
 // Configuración de Supabase con URL normalizada (sin /rest/v1)
 const rawUrl =
@@ -260,7 +261,7 @@ export async function loginWithCredentials(
         level: found.level || 1,
         streak: found.streak || 0,
         avatar: '👨‍💻',
-        completed_exercises: found.recentAttempts.filter((a) => a.success).map((a) => a.exerciseId),
+        completed_exercises: (found.recentAttempts || []).filter((a) => a.success).map((a) => a.exerciseId),
         badges: [],
       };
       saveUserToStorage(user);
@@ -268,23 +269,25 @@ export async function loginWithCredentials(
     }
   }
 
-  // 3. Fallback directo para el docente administrador principal si accede por Acceso Docente
-  if (loginType === 'teacher' && isTeacherAccount(normalizedEmail)) {
-    const teacherUser: UserProfile = {
-      id: 'teacher-admin-id',
-      email: normalizedEmail,
-      name: 'Prof. ' + email.split('@')[0].replace('.', ' '),
-      role: 'teacher',
-      course: '1DAM',
-      xp: 9999,
-      level: 7,
-      streak: 99,
-      avatar: '🛡️',
-      completed_exercises: [],
-      badges: ['level_5_sysadmin'],
-    };
-    saveUserToStorage(teacherUser);
-    return { success: true, user: teacherUser };
+  // 3. Fallback solo si Supabase NO está configurado (modo demostración / local)
+  if (!isSupabaseConfigured && loginType === 'teacher' && isTeacherAccount(normalizedEmail)) {
+    if (pass && pass.length >= 6) {
+      const teacherUser: UserProfile = {
+        id: 'teacher-admin-id',
+        email: normalizedEmail,
+        name: 'Prof. ' + email.split('@')[0].replace('.', ' '),
+        role: 'teacher',
+        course: '1DAM',
+        xp: 9999,
+        level: 7,
+        streak: 99,
+        avatar: '🛡️',
+        completed_exercises: [],
+        badges: ['level_5_sysadmin'],
+      };
+      saveUserToStorage(teacherUser);
+      return { success: true, user: teacherUser };
+    }
   }
 
   return {
@@ -415,6 +418,7 @@ export async function recordExerciseCompletion(
     currentStudents[idx].streak = newStreak;
     currentStudents[idx].completedCount = updatedCompleted.length;
     currentStudents[idx].lastActive = 'Ahora mismo';
+    currentStudents[idx].recentAttempts = currentStudents[idx].recentAttempts || [];
     currentStudents[idx].recentAttempts.unshift({
       exerciseId,
       exerciseTitle: exerciseId,
@@ -470,7 +474,7 @@ export async function fetchClassroomProgress(): Promise<StudentProgressRow[]> {
           xp: st.xp || 0,
           streak: st.streak || 0,
           completedCount: (st.completed_exercises || []).length,
-          totalExercises: 26,
+          totalExercises: getAllExercises().length,
           lastActive: 'Hoy',
           recentAttempts: [],
         }));
@@ -533,7 +537,7 @@ export async function createStudentAccount(
     xp: role === 'teacher' ? 9999 : 0,
     streak: role === 'teacher' ? 99 : 0,
     completedCount: 0,
-    totalExercises: 26,
+    totalExercises: getAllExercises().length,
     lastActive: 'Nunca',
     recentAttempts: [],
   };
@@ -550,8 +554,9 @@ export async function createStudentAccount(
         : 'https://gasensios.github.io/Plataforma_Comandos/';
 
     try {
-      // 1. Intentar registrar vía RPC 'admin_create_student' (si está instalada en base de datos)
-      const { data, error } = await client.rpc('admin_create_student', {
+      // 1. Intentar registrar vía RPC 'admin_create_student' con la sesión autenticada del profesor
+      const rpcClient = supabase || client;
+      const { data, error } = await rpcClient.rpc('admin_create_student', {
         student_email: email,
         student_password: tempPassword,
         student_name: name,

@@ -52,7 +52,52 @@ export class TerminalSimulator {
     this.history.push(trimmed);
     const lower = trimmed.toLowerCase();
 
-    // 1. Clear terminal
+    // 1. Exercise Match Validation (Priority: if the user enters the correct mission command, complete it!)
+    if (activeExercise) {
+      const isMatch = activeExercise.validCommandPatterns.some((pattern) => {
+        if (typeof pattern === 'string') {
+          return this.os === 'windows'
+            ? trimmed.toLowerCase() === pattern.toLowerCase()
+            : trimmed === pattern;
+        } else if (pattern instanceof RegExp) {
+          if (pattern.test(trimmed)) return true;
+          // En Windows, permitir también validar cuando el alumno usa '/' en vez de '\' en las rutas
+          if (this.os === 'windows' && trimmed.includes('/')) {
+            const normalizedBackslashes = trimmed.replace(/\//g, '\\');
+            if (pattern.test(normalizedBackslashes)) return true;
+          }
+          return false;
+        }
+        return false;
+      });
+
+      if (isMatch) {
+        const lines: TerminalLine[] = [];
+        const outputs = activeExercise.simulatedOutput.split('\n');
+        outputs.forEach((out) => {
+          lines.push({
+            id: Math.random().toString(),
+            type: 'output',
+            content: out,
+          });
+        });
+
+        lines.push({
+          id: Math.random().toString(),
+          type: 'success',
+          content: `✔ PROTOCOLO COMPLETADO. +${activeExercise.xpReward} XP de Cyber-Créditos sumados.`,
+        });
+
+        return {
+          isCorrect: true,
+          outputLines: lines,
+          feedback: '¡Excelente comando! Objetivo cumplido con éxito.',
+          earnedXp: activeExercise.xpReward,
+        };
+      }
+    }
+
+    // 2. Clear terminal
     if (lower === 'clear' || lower === 'cls') {
       return {
         isCorrect: false,
@@ -60,7 +105,7 @@ export class TerminalSimulator {
       };
     }
 
-    // 2. FUN GEEK / GAMER EASTER EGGS
+    // 3. FUN GEEK / GAMER EASTER EGGS
     if (lower === 'matrix') {
       return {
         isCorrect: false,
@@ -102,45 +147,6 @@ export class TerminalSimulator {
           { id: Math.random().toString(), type: 'success', content: 'Tranquilo, estás en un sandbox seguro.' },
         ],
       };
-    }
-
-    // 3. Exercise Match Validation
-    if (activeExercise) {
-      const isMatch = activeExercise.validCommandPatterns.some((pattern) => {
-        if (typeof pattern === 'string') {
-          return this.os === 'windows'
-            ? trimmed.toLowerCase() === pattern.toLowerCase()
-            : trimmed === pattern;
-        } else if (pattern instanceof RegExp) {
-          return pattern.test(trimmed);
-        }
-        return false;
-      });
-
-      if (isMatch) {
-        const lines: TerminalLine[] = [];
-        const outputs = activeExercise.simulatedOutput.split('\n');
-        outputs.forEach((out) => {
-          lines.push({
-            id: Math.random().toString(),
-            type: 'output',
-            content: out,
-          });
-        });
-
-        lines.push({
-          id: Math.random().toString(),
-          type: 'success',
-          content: `✔ PROTOCOLO COMPLETADO. +${activeExercise.xpReward} XP de Cyber-Créditos sumados.`,
-        });
-
-        return {
-          isCorrect: true,
-          outputLines: lines,
-          feedback: '¡Excelente comando! Objetivo cumplido con éxito.',
-          earnedXp: activeExercise.xpReward,
-        };
-      }
     }
 
     // 4. Fallback: simulate realistic general shell behavior

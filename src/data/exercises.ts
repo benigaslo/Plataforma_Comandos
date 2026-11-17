@@ -893,8 +893,9 @@ export const BASE_EXERCISES: Exercise[] = [
     explanation: 'mdadm --create /dev/md0 --level=1 --raid-devices=2 /dev/sdb1 /dev/sdc1 inicializa un RAID 1 por software en Linux.',
     hint: 'Usa: mdadm --create /dev/md0 --level=1 --raid-devices=2 /dev/sdb1 /dev/sdc1',
     validCommandPatterns: [
-      /^mdadm\s+--create\s+\/dev\/md0\s+--level=1\s+--raid-devices=2\s+\/dev\/sdb1\s+\/dev\/sdc1$/,
-      /^sudo\s+mdadm\s+--create\s+\/dev\/md0\s+--level=1\s+--raid-devices=2\s+\/dev\/sdb1\s+\/dev\/sdc1$/
+      /^(sudo\s+)?mdadm\s+(--create|-C)\s+\/dev\/md0\s+(--level[=\s](1|mirror|raid1)|-l[=\s]?(1|mirror|raid1))\s+(--raid-devices[=\s]2|-n[=\s]?2)\s+\/dev\/sdb1\s+\/dev\/sdc1$/i,
+      /^(sudo\s+)?mdadm\s+(--create|-C)\s+\/dev\/md0\s+(--raid-devices[=\s]2|-n[=\s]?2)\s+(--level[=\s](1|mirror|raid1)|-l[=\s]?(1|mirror|raid1))\s+\/dev\/sdb1\s+\/dev\/sdc1$/i,
+      /^(sudo\s+)?mdadm\s+--create\s+\/dev\/md0\s+--level=1\s+--raid-devices=2\s+\/dev\/sdb1\s+\/dev\/sdc1$/i
     ],
     simulatedOutput: 'usuario@ies-benigaslo:~$ mdadm --create /dev/md0 --level=1 --raid-devices=2 /dev/sdb1 /dev/sdc1\nmdadm: Note: checking device /dev/sdb1...\nmdadm: Note: checking device /dev/sdc1...\nmdadm: Defaulting to version 1.2 metadata\nmdadm: array /dev/md0 started.\n(Matriz RAID 1 creada con éxito en /dev/md0 con redundancia en espejo)',
   },
@@ -910,7 +911,7 @@ export const BASE_EXERCISES: Exercise[] = [
     explanation: 'tar -cvf archivo.tar directorio (c = create, v = verbose, f = file).',
     hint: 'Escribe: tar -cvf copia.tar Documentos',
     validCommandPatterns: [
-      /^tar\s+(-cvf|cvf)\s+copia\.tar\s+Documentos\/?$/
+      /^tar\s+(-?c[vf]*|-?cfv)\s+copia\.tar\s+Documentos\/?$/i
     ],
     simulatedOutput: 'usuario@ies-benigaslo:~$ tar -cvf copia.tar Documentos\nDocumentos/\nDocumentos/informe.txt\nDocumentos/presupuesto.pdf\nDocumentos/notas.md\n(Paquete copia.tar creado correctamente)',
   }
@@ -921,14 +922,24 @@ export function getStoredCustomExercises(): Exercise[] {
   const saved = localStorage.getItem('comandquest_custom_exercises');
   if (saved) {
     try {
-      const parsed: Exercise[] = JSON.parse(saved);
+      const parsed: any[] = JSON.parse(saved);
       return parsed.map((e) => ({
         ...e,
-        validCommandPatterns: e.validCommandPatterns.map((p) => {
-          if (typeof p === 'string' && p.startsWith('/') && p.endsWith('/')) {
-            return new RegExp(p.slice(1, -1), 'i');
+        validCommandPatterns: (e.validCommandPatterns || []).map((p: any) => {
+          if (p instanceof RegExp) return p;
+          if (typeof p === 'string') {
+            if (p.startsWith('/') && p.lastIndexOf('/') > 0) {
+              const lastSlash = p.lastIndexOf('/');
+              const pattern = p.slice(1, lastSlash);
+              const flags = p.slice(lastSlash + 1) || 'i';
+              return new RegExp(pattern, flags);
+            }
+            return new RegExp(p, 'i');
           }
-          return p;
+          if (p && typeof p === 'object' && p.source) {
+            return new RegExp(p.source, p.flags || 'i');
+          }
+          return /^$/;
         }),
       }));
     } catch {
@@ -941,7 +952,15 @@ export function getStoredCustomExercises(): Exercise[] {
 export function saveCustomExercise(exercise: Exercise): Exercise[] {
   const current = getStoredCustomExercises().filter((e) => e.id !== exercise.id);
   const updated = [...current, exercise];
-  localStorage.setItem('comandquest_custom_exercises', JSON.stringify(updated));
+  
+  const toStore = updated.map((e) => ({
+    ...e,
+    validCommandPatterns: e.validCommandPatterns.map((p) =>
+      p instanceof RegExp ? `/${p.source}/${p.flags}` : String(p)
+    ),
+  }));
+
+  localStorage.setItem('comandquest_custom_exercises', JSON.stringify(toStore));
   return updated;
 }
 

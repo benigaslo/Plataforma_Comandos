@@ -53,7 +53,7 @@ export const ExerciseList: React.FC<ExerciseListProps> = ({
               : 'bg-cyan-950 text-cyan-300 border border-cyan-800/80'
           }`}
         >
-          {completedIds.filter((id) => id.startsWith(os === 'linux' ? 'linux' : 'win')).length} hechos
+          {completedIds.filter((id) => id.startsWith(os === 'linux' ? 'linux' : 'win') || id.startsWith(os === 'linux' ? 'custom-linux' : 'custom-win')).length} hechos
         </span>
       </div>
 

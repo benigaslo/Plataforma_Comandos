@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { UserProfile, CourseGroup, ThemeMode } from '../types';
 import {
   loginWithCredentials,
@@ -85,9 +85,11 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
     };
   }, []);
 
-  const filteredStudents = students.filter(
-    (s) => s.course === selectedCourse && s.role !== 'teacher' && !isTeacherAccount(s.email, s.role)
-  );
+  const filteredStudents = useMemo(() => {
+    return students.filter(
+      (s) => s.course === selectedCourse && s.role !== 'teacher' && !isTeacherAccount(s.email, s.role)
+    );
+  }, [students, selectedCourse]);
 
   useEffect(() => {
     if (filteredStudents.length > 0) {
@@ -97,7 +99,7 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
     } else {
       setStudentEmail('');
     }
-  }, [selectedCourse, filteredStudents, studentEmail]);
+  }, [filteredStudents]);
 
   const isLight = theme === 'light';
   const isMatrix = theme === 'matrix';

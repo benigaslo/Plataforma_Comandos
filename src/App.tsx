@@ -5,6 +5,9 @@ import { BADGES } from './data/badges';
 import {
   getCurrentUserSession,
   recordExerciseCompletion,
+  saveUserToStorage,
+  isSupabaseConfigured,
+  supabase,
 } from './lib/supabase';
 import { sounds } from './lib/sound';
 import { Navbar } from './components/Navbar';
@@ -59,12 +62,18 @@ export const App: React.FC = () => {
     document.body.className = `theme-${theme}`;
   }, [theme]);
 
-  // Reload dynamic exercises
+  // Reload dynamic exercises and ensure activeExercise remains valid
   const refreshExercises = useCallback(() => {
     const updated = getAllExercises();
     setExercises(updated);
     setModules(getModulesForExercises(updated));
-  }, []);
+
+    setActiveExercise((prev) => {
+      const stillExists = updated.find((e) => e.id === prev.id);
+      if (stillExists) return stillExists;
+      return updated.find((e) => e.os === currentOS) || updated[0];
+    });
+  }, [currentOS]);
 
   // Load user session on mount
   useEffect(() => {
@@ -86,7 +95,7 @@ export const App: React.FC = () => {
   const currentOsExercises = exercises.filter((e) => e.os === currentOS);
   const currentIndex = currentOsExercises.findIndex((e) => e.id === activeExercise.id);
   const hasPrev = currentIndex > 0;
-  const hasNext = currentIndex < currentOsExercises.length - 1;
+  const hasNext = currentIndex >= 0 && currentIndex < currentOsExercises.length - 1;
 
   const handlePrev = () => {
     if (hasPrev) {
@@ -105,16 +114,35 @@ export const App: React.FC = () => {
     const oldLevel = user.level;
     const updated = await recordExerciseCompletion(user, activeExercise.id, xpEarned, command);
 
-    // Check newly unlocked badges
+    // Check newly unlocked badges and apply xpBonus
     const newlyUnlocked: string[] = [];
+    let bonusXp = 0;
     BADGES.forEach((b) => {
       if (!updated.badges.includes(b.id) && b.condition(updated)) {
         newlyUnlocked.push(b.id);
+        bonusXp += b.xpBonus || 0;
       }
     });
 
     if (newlyUnlocked.length > 0) {
       updated.badges = [...updated.badges, ...newlyUnlocked];
+      if (bonusXp > 0) {
+        updated.xp += bonusXp;
+        updated.level = Math.max(updated.level, Math.floor(updated.xp / 250) + 1);
+      }
+      // Persistir las medallas y el bonus de XP en storage y Supabase
+      saveUserToStorage(updated);
+      if (isSupabaseConfigured && supabase) {
+        try {
+          await supabase.from('profiles').update({
+            badges: updated.badges,
+            xp: updated.xp,
+            level: updated.level,
+          }).eq('id', user.id);
+        } catch (e) {
+          console.warn('Error syncing unlocked badges to Supabase:', e);
+        }
+      }
     }
 
     setUser(updated);
@@ -201,6 +229,7 @@ export const App: React.FC = () => {
           {/* Mission & Guidance Card (Top) */}
           <div className="shrink-0">
             <ExerciseView
+              key={activeExercise.id}
               exercise={activeExercise}
               isCompleted={isCompleted}
               onNext={handleNext}
@@ -226,34 +255,42 @@ export const App: React.FC = () => {
       </main>
 
       {/* Modals */}
-      <LeaderboardModal
-        isOpen={isLeaderboardOpen}
-        onClose={() => setIsLeaderboardOpen(false)}
-        currentUserId={user?.id || ''}
-        theme={theme}
-      />
+      {isLeaderboardOpen && (
+        <LeaderboardModal
+          isOpen={isLeaderboardOpen}
+          onClose={() => setIsLeaderboardOpen(false)}
+          currentUserId={user?.id || ''}
+          theme={theme}
+        />
+      )}
 
-      <BadgesModal
-        isOpen={isBadgesOpen}
-        onClose={() => setIsBadgesOpen(false)}
-        user={user}
-        theme={theme}
-      />
+      {isBadgesOpen && (
+        <BadgesModal
+          isOpen={isBadgesOpen}
+          onClose={() => setIsBadgesOpen(false)}
+          user={user}
+          theme={theme}
+        />
+      )}
 
-      <TeacherPanel
-        isOpen={isTeacherPanelOpen}
-        onClose={() => setIsTeacherPanelOpen(false)}
-        onExercisesUpdated={refreshExercises}
-        theme={theme}
-      />
+      {isTeacherPanelOpen && (
+        <TeacherPanel
+          isOpen={isTeacherPanelOpen}
+          onClose={() => setIsTeacherPanelOpen(false)}
+          onExercisesUpdated={refreshExercises}
+          theme={theme}
+        />
+      )}
 
-      <AuthModal
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        currentUser={user}
-        onUserChange={(u) => setUser(u)}
-        theme={theme}
-      />
+      {isAuthOpen && (
+        <AuthModal
+          isOpen={isAuthOpen}
+          onClose={() => setIsAuthOpen(false)}
+          currentUser={user}
+          onUserChange={(u) => setUser(u)}
+          theme={theme}
+        />
+      )}
 
       {levelUpData && (
         <LevelUpModal
