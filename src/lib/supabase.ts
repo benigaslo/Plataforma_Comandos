@@ -19,6 +19,17 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
+// Cliente secundario aislado sin persistencia de sesión en localStorage para altas
+export const registrationClient: SupabaseClient | null = isSupabaseConfigured
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    })
+  : null;
+
 // Estado inicial sin alumnos de ejemplo para que el aula empiece 100% limpia
 const DEMO_STUDENT: UserProfile = {
   id: 'guest-student-id',
@@ -167,7 +178,8 @@ export async function loginWithCredentials(
         if (error.message.includes('Email not confirmed')) {
           return {
             success: false,
-            message: 'El correo en Supabase no ha sido confirmado aún. Ve a Supabase -> Authentication -> Users y confirma el usuario.',
+            message:
+              'El correo requiere confirmación en Supabase. En tu proyecto de Supabase ve a Authentication -> Providers -> Email y desactiva "Confirm email" para permitir altas y accesos directos sin correo.',
           };
         }
       }
@@ -430,9 +442,16 @@ export async function createStudentAccount(
   list.unshift(newStudentRow);
   saveStoredStudents(list);
 
-  if (isSupabaseConfigured && supabase) {
+  if (isSupabaseConfigured && (registrationClient || supabase)) {
+    const client = registrationClient || supabase!;
+    const redirectUrl =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}${window.location.pathname}`
+        : 'https://gasensios.github.io/Plataforma_Comandos/';
+
     try {
-      const { data, error } = await supabase.rpc('admin_create_student', {
+      // 1. Intentar registrar vía RPC 'admin_create_student' (si está instalada en base de datos)
+      const { data, error } = await client.rpc('admin_create_student', {
         student_email: email,
         student_password: tempPassword,
         student_name: name,
@@ -440,16 +459,31 @@ export async function createStudentAccount(
         student_course: course,
       });
 
-      if (error) {
-        const { error: signUpErr } = await supabase.auth.signUp({
+      const rpcFailed = error || (data && data.success === false);
+
+      if (rpcFailed) {
+        // 2. Fallback: Registrar mediante signUp sin sobreescribir la sesión del profesor activo
+        const { data: signUpData, error: signUpErr } = await client.auth.signUp({
           email,
           password: tempPassword,
           options: {
             data: { full_name: name, role, course },
+            emailRedirectTo: redirectUrl,
           },
         });
+
         if (signUpErr) {
+          if (signUpErr.message.toLowerCase().includes('already registered')) {
+            return {
+              success: false,
+              message: `El correo "${email}" ya se encuentra registrado en Supabase.`,
+            };
+          }
           return { success: false, message: signUpErr.message };
+        }
+
+        if (signUpData?.user?.id) {
+          newStudentRow.studentId = signUpData.user.id;
         }
       } else if (data && data.user_id) {
         newStudentRow.studentId = data.user_id;

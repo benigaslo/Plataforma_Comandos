@@ -121,17 +121,45 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- 5. FUNCIÓN RPC PARA QUE EL PROFESOR CREE ALUMNOS O DOCENTES DIRECTAMENTE DESDE LA WEB
+-- 5. TRIGGER DE AUTO-CONFIRMACIÓN (Marca confirmados a los usuarios de inmediato sin requerir correo)
+create or replace function public.auto_confirm_user()
+returns trigger as $$
+begin
+  new.email_confirmed_at := coalesce(new.email_confirmed_at, now());
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_auth_user_created_confirm on auth.users;
+create trigger on_auth_user_created_confirm
+  before insert on auth.users
+  for each row execute procedure public.auto_confirm_user();
+
+-- Confirmar de inmediato los usuarios que estuvieran pendientes de confirmar correo:
+update auth.users
+set email_confirmed_at = now()
+where email_confirmed_at is null;
+
+-- 6. FUNCIÓN RPC PARA QUE EL PROFESOR CREE ALUMNOS O DOCENTES DIRECTAMENTE DESDE LA WEB
 create or replace function public.admin_create_student(
   student_email text,
   student_password text,
   student_name text,
   user_role text default 'student',
   student_course text default '1DAM'
-) returns json as $$
+) returns json
+language plpgsql
+security definer
+set search_path = public, extensions, auth
+as $$
 declare
   new_user_id uuid;
 begin
+  -- Comprobar si el usuario ya existe
+  if exists (select 1 from auth.users where email = student_email) then
+    return json_build_object('success', false, 'error', 'El correo ya está registrado en Supabase');
+  end if;
+
   -- Generar nuevo usuario en auth.users
   new_user_id := gen_random_uuid();
 
@@ -143,6 +171,7 @@ begin
     email,
     encrypted_password,
     email_confirmed_at,
+    raw_app_meta_data,
     raw_user_meta_data,
     created_at,
     updated_at
@@ -154,7 +183,29 @@ begin
     student_email,
     crypt(student_password, gen_salt('bf')),
     now(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
     jsonb_build_object('full_name', student_name, 'role', user_role, 'course', student_course),
+    now(),
+    now()
+  );
+
+  -- Insertar en identities para compatibilidad total con GoTrue/Supabase Auth
+  insert into auth.identities (
+    id,
+    user_id,
+    identity_data,
+    provider,
+    provider_id,
+    last_sign_in_at,
+    created_at,
+    updated_at
+  ) values (
+    gen_random_uuid(),
+    new_user_id,
+    jsonb_build_object('sub', new_user_id, 'email', student_email),
+    'email',
+    student_email,
+    now(),
     now(),
     now()
   );
@@ -163,4 +214,4 @@ begin
 exception when others then
   return json_build_object('success', false, 'error', SQLERRM);
 end;
-$$ language plpgsql security definer;
+$$;
