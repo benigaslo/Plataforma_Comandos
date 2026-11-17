@@ -30,6 +30,18 @@ export const registrationClient: SupabaseClient | null = isSupabaseConfigured
     })
   : null;
 
+export function isTeacherAccount(email?: string, role?: string): boolean {
+  if (role === 'teacher') return true;
+  if (!email) return false;
+  const norm = email.toLowerCase().trim();
+  return (
+    norm === 'g.asensiosanagusti@edu.gva.es' ||
+    norm === 'v.mascarosalvarez@edu.gva.es' ||
+    norm === 'profesor@comandquest.local' ||
+    (norm.startsWith('profesor') && norm.endsWith('@iesbenigaslo.es'))
+  );
+}
+
 // Estado inicial sin alumnos de ejemplo para que el aula empiece 100% limpia
 const DEMO_STUDENT: UserProfile = {
   id: 'guest-student-id',
@@ -126,18 +138,8 @@ export async function loginWithCredentials(
           .eq('id', data.user.id)
           .single();
 
-        const isKnownTeacher =
-          profile?.role === 'teacher' ||
-          data.user.user_metadata?.role === 'teacher' ||
-          normalizedEmail === 'g.asensiosanagusti@edu.gva.es' ||
-          normalizedEmail.includes('asensio') ||
-          normalizedEmail.includes('profesor');
-
-        const isExplicitStudent =
-          profile?.role === 'student' &&
-          normalizedEmail !== 'g.asensiosanagusti@edu.gva.es' &&
-          !normalizedEmail.includes('asensio') &&
-          !normalizedEmail.includes('profesor');
+        const isKnownTeacher = isTeacherAccount(normalizedEmail, profile?.role || data.user.user_metadata?.role);
+        const isExplicitStudent = profile?.role === 'student' && !isKnownTeacher;
 
         // Si se intenta acceder por Acceso Docente con una cuenta de alumno
         if (loginType === 'teacher' && isExplicitStudent) {
@@ -158,16 +160,22 @@ export async function loginWithCredentials(
           data.user.user_metadata?.full_name ||
           (role === 'teacher' ? 'G. Asensio (Docente)' : email.split('@')[0].replace('.', ' '));
 
-        // Sincronizar en profiles con rol docente
+        // Sincronizar en profiles con rol docente (tolerante a si la columna course aún no existe en Supabase)
         try {
-          await supabase.from('profiles').upsert({
+          const profilePayload: Record<string, unknown> = {
             id: data.user.id,
             email: normalizedEmail,
             full_name: name,
             role,
-            course,
             avatar_url: role === 'teacher' ? '🛡️' : '👨‍💻',
+          };
+          const { error: upsertErr } = await supabase.from('profiles').upsert({
+            ...profilePayload,
+            course,
           });
+          if (upsertErr && upsertErr.message?.includes('course')) {
+            await supabase.from('profiles').upsert(profilePayload);
+          }
         } catch {}
 
         const user: UserProfile = {
@@ -217,13 +225,9 @@ export async function loginWithCredentials(
     }
 
     if (loginType === 'teacher') {
-      const isTeacherAccount =
-        found.role === 'teacher' ||
-        normalizedEmail === 'g.asensiosanagusti@edu.gva.es' ||
-        normalizedEmail.includes('asensio') ||
-        normalizedEmail.includes('profesor');
+      const isTeacher = isTeacherAccount(normalizedEmail, found.role);
 
-      if (!isTeacherAccount) {
+      if (!isTeacher) {
         return {
           success: false,
           message: 'Esta cuenta es de alumno. Para resolver tus retos inicia sesión desde la pestaña "Acceso Alumnos".',
@@ -265,12 +269,7 @@ export async function loginWithCredentials(
   }
 
   // 3. Fallback directo para el docente administrador principal si accede por Acceso Docente
-  if (
-    loginType === 'teacher' &&
-    (normalizedEmail === 'g.asensiosanagusti@edu.gva.es' ||
-      normalizedEmail.includes('asensio') ||
-      normalizedEmail.includes('profesor'))
-  ) {
+  if (loginType === 'teacher' && isTeacherAccount(normalizedEmail)) {
     const teacherUser: UserProfile = {
       id: 'teacher-admin-id',
       email: normalizedEmail,
@@ -314,13 +313,6 @@ export function loginAsGuest(): UserProfile {
 }
 
 export async function getCurrentUserSession(): Promise<UserProfile | null> {
-  const isTeacherAccount = (email?: string, role?: string) => {
-    if (role === 'teacher') return true;
-    if (!email) return false;
-    const norm = email.toLowerCase().trim();
-    return norm === 'g.asensiosanagusti@edu.gva.es' || norm.includes('asensio') || norm.includes('profesor');
-  };
-
   const saved = localStorage.getItem('comandquest_active_user');
   if (saved) {
     try {
@@ -458,6 +450,8 @@ export async function recordExerciseCompletion(
 }
 
 export async function fetchClassroomProgress(): Promise<StudentProgressRow[]> {
+  let list: StudentProgressRow[] = [];
+
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase
@@ -466,11 +460,11 @@ export async function fetchClassroomProgress(): Promise<StudentProgressRow[]> {
         .order('xp', { ascending: false });
 
       if (!error && data && data.length > 0) {
-        return data.map((st) => ({
+        list = data.map((st) => ({
           studentId: st.id,
           studentName: st.full_name || st.email.split('@')[0],
           studentEmail: st.email,
-          role: (st.role as UserRole) || 'student',
+          role: (st.role as UserRole) || (isTeacherAccount(st.email) ? 'teacher' : 'student'),
           course: (st.course as CourseGroup) || '1DAM',
           level: st.level || 1,
           xp: st.xp || 0,
@@ -482,10 +476,39 @@ export async function fetchClassroomProgress(): Promise<StudentProgressRow[]> {
         }));
       }
     } catch {
-      // fallback to mock data
+      // fallback
     }
   }
-  return getStoredStudents();
+
+  // Si no hay datos en Supabase, usar el almacenamiento local
+  if (list.length === 0) {
+    list = getStoredStudents();
+  } else {
+    // Si hay datos en Supabase, combinar con las contraseñas asignadas en local para acceso rápido
+    const stored = getStoredStudents();
+    list = list.map((st) => {
+      const foundStored = stored.find(
+        (s) => s.studentEmail.toLowerCase().trim() === st.studentEmail.toLowerCase().trim()
+      );
+      return {
+        ...st,
+        initialPassword: foundStored?.initialPassword || st.initialPassword,
+      };
+    });
+  }
+
+  // Deduplicación estricta por correo para evitar registros duplicados en la plataforma
+  const seen = new Set<string>();
+  const uniqueStudents: StudentProgressRow[] = [];
+  for (const st of list) {
+    const key = (st.studentEmail || '').toLowerCase().trim();
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      uniqueStudents.push(st);
+    }
+  }
+
+  return uniqueStudents;
 }
 
 // =========================================================================
@@ -626,18 +649,46 @@ export async function bulkCreateStudents(
   return { createdCount: created, errors };
 }
 
-export async function deleteStudent(studentId: string): Promise<boolean> {
-  const current = getStoredStudents().filter((s) => s.studentId !== studentId);
+export async function deleteStudent(
+  studentId: string,
+  studentEmail?: string
+): Promise<{ success: boolean; message?: string }> {
+  const normEmail = studentEmail?.toLowerCase().trim();
+
+  // 1. Limpiar de almacenamiento local
+  const current = getStoredStudents().filter(
+    (s) => s.studentId !== studentId && (!normEmail || s.studentEmail.toLowerCase().trim() !== normEmail)
+  );
   saveStoredStudents(current);
 
+  // 2. Limpiar de Supabase (Base de datos y Auth)
   if (isSupabaseConfigured && supabase) {
     try {
-      await supabase.from('profiles').delete().eq('id', studentId);
-    } catch {
-      // fallback
+      // 2a. Intento RPC administrativo si está instalado
+      if (normEmail) {
+        try {
+          await supabase.rpc('admin_delete_student', {
+            target_email: normEmail,
+            target_id: studentId && studentId.length === 36 ? studentId : null,
+          });
+        } catch (rpcErr) {
+          console.warn('RPC admin_delete_student notice:', rpcErr);
+        }
+      }
+
+      // 2b. Eliminación directa en la tabla 'profiles'
+      if (normEmail) {
+        await supabase.from('profiles').delete().eq('email', normEmail);
+      }
+      if (studentId && studentId.length === 36) {
+        await supabase.from('profiles').delete().eq('id', studentId);
+      }
+    } catch (e: unknown) {
+      console.warn('Error deleting student in Supabase:', e);
     }
   }
-  return true;
+
+  return { success: true, message: 'Usuario eliminado correctamente de la base de datos' };
 }
 
 // =========================================================================

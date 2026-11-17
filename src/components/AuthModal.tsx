@@ -4,6 +4,8 @@ import {
   loginWithCredentials,
   logoutUser,
   getStoredStudents,
+  fetchClassroomProgress,
+  isTeacherAccount,
 } from '../lib/supabase';
 import { sounds } from '../lib/sound';
 import {
@@ -46,26 +48,51 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   >([]);
 
   useEffect(() => {
+    let isMounted = true;
     if (isOpen) {
       setErrorMsg('');
       setSuccessMsg('');
-      const list = getStoredStudents().map((s) => ({
+      const local = getStoredStudents().map((s) => ({
         name: s.studentName,
         email: s.studentEmail,
         course: s.course,
         role: s.role,
       }));
-      const isTeacher = (e: string, r: string) => {
-        const norm = e.toLowerCase().trim();
-        return r === 'teacher' || norm === 'g.asensiosanagusti@edu.gva.es' || norm.includes('asensio') || norm.includes('profesor');
-      };
-      setAvailableStudents(list);
-      if (list.length > 0 && !selectedStudentEmail) {
-        const first = list.find((s) => s.course === selectedCourse && !isTeacher(s.email, s.role)) || list[0];
-        if (first) setSelectedStudentEmail(first.email);
-      }
+      setAvailableStudents(local);
+
+      fetchClassroomProgress()
+        .then((list) => {
+          if (isMounted && list && list.length > 0) {
+            setAvailableStudents(
+              list.map((s) => ({
+                name: s.studentName,
+                email: s.studentEmail,
+                course: s.course,
+                role: s.role,
+              }))
+            );
+          }
+        })
+        .catch(() => {});
     }
-  }, [isOpen, selectedCourse]);
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
+
+  const filteredStudents = availableStudents.filter(
+    (s) => s.course === selectedCourse && s.role !== 'teacher' && !isTeacherAccount(s.email, s.role)
+  );
+
+  useEffect(() => {
+    if (filteredStudents.length > 0) {
+      if (!filteredStudents.some((s) => s.email === selectedStudentEmail)) {
+        setSelectedStudentEmail(filteredStudents[0].email);
+      }
+    } else {
+      setSelectedStudentEmail('');
+    }
+  }, [selectedCourse, filteredStudents, selectedStudentEmail]);
 
   if (!isOpen) return null;
 
@@ -83,11 +110,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setErrorMsg('');
     setLoading(true);
 
-    const normEmail = email.toLowerCase().trim();
-    const isDocente =
-      normEmail === 'g.asensiosanagusti@edu.gva.es' ||
-      normEmail.includes('asensio') ||
-      normEmail.includes('profesor');
+    const isDocente = isTeacherAccount(email);
 
     const res = await loginWithCredentials(
       email,
@@ -143,14 +166,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     onClose();
   };
 
-  const isTeacher = (e: string, r: string) => {
-    const norm = e.toLowerCase().trim();
-    return r === 'teacher' || norm === 'g.asensiosanagusti@edu.gva.es' || norm.includes('asensio') || norm.includes('profesor');
-  };
-
-  const filteredStudents = availableStudents.filter(
-    (s) => s.course === selectedCourse && !isTeacher(s.email, s.role)
-  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">

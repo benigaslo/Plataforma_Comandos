@@ -214,3 +214,55 @@ exception when others then
   return json_build_object('success', false, 'error', SQLERRM);
 end;
 $$;
+
+-- 7. FUNCIÓN RPC PARA QUE EL PROFESOR ELIMINE ALUMNOS O DOCENTES DE LA BASE DE DATOS Y AUTH
+create or replace function public.admin_delete_student(
+  target_email text,
+  target_id uuid default null
+) returns json
+language plpgsql
+security definer
+set search_path = public, extensions, auth
+as $$
+begin
+  -- Borrar intentos y progreso de submissions
+  delete from public.submissions
+  where user_id in (
+    select id from public.profiles where email = target_email or (target_id is not null and id = target_id)
+  );
+
+  -- Borrar de la tabla profiles
+  delete from public.profiles
+  where email = target_email or (target_id is not null and id = target_id);
+
+  -- Borrar de auth.identities
+  delete from auth.identities
+  where identity_data->>'email' = target_email or (target_id is not null and user_id = target_id);
+
+  -- Borrar de auth.users (cascada)
+  delete from auth.users
+  where email = target_email or (target_id is not null and id = target_id);
+
+  return json_build_object('success', true);
+exception when others then
+  return json_build_object('success', false, 'error', SQLERRM);
+end;
+$$;
+
+-- 8. POLÍTICAS DE LECTURA Y BORRADO EN PROFILES
+-- Permitir que la pantalla de inicio de sesión pueda listar los alumnos registrados:
+drop policy if exists "Permitir lectura publica de perfiles para acceso del aula" on public.profiles;
+create policy "Permitir lectura publica de perfiles para acceso del aula"
+  on public.profiles for select
+  using (true);
+
+-- Permitir borrado directo de perfiles por docentes autenticados:
+drop policy if exists "Los docentes pueden eliminar perfiles" on public.profiles;
+create policy "Los docentes pueden eliminar perfiles"
+  on public.profiles for delete
+  using (
+    exists (
+      select 1 from public.profiles
+      where id = auth.uid() and role = 'teacher'
+    )
+  );

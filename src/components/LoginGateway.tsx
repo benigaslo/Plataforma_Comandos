@@ -3,6 +3,8 @@ import { UserProfile, CourseGroup, ThemeMode } from '../types';
 import {
   loginWithCredentials,
   getStoredStudents,
+  fetchClassroomProgress,
+  isTeacherAccount,
   loginAsGuest,
 } from '../lib/supabase';
 import { sounds } from '../lib/sound';
@@ -51,26 +53,51 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
   >([]);
 
   useEffect(() => {
-    const list = getStoredStudents().map((s) => ({
+    let isMounted = true;
+
+    // Carga inicial inmediata desde localStorage
+    const local = getStoredStudents().map((s) => ({
       name: s.studentName,
       email: s.studentEmail,
       course: s.course,
       role: s.role,
     }));
-    setStudents(list);
+    setStudents(local);
 
-    const isTeacher = (e: string, r: string) => {
-      const norm = e.toLowerCase().trim();
-      return r === 'teacher' || norm === 'g.asensiosanagusti@edu.gva.es' || norm.includes('asensio') || norm.includes('profesor');
+    // Carga asíncrona desde Supabase para disponer de todos los alumnos registrados
+    fetchClassroomProgress()
+      .then((list) => {
+        if (isMounted && list && list.length > 0) {
+          setStudents(
+            list.map((s) => ({
+              name: s.studentName,
+              email: s.studentEmail,
+              course: s.course,
+              role: s.role,
+            }))
+          );
+        }
+      })
+      .catch((err) => console.warn('Error loading classroom students in gateway:', err));
+
+    return () => {
+      isMounted = false;
     };
+  }, []);
 
-    const first = list.find((s) => s.course === selectedCourse && !isTeacher(s.email, s.role));
-    if (first) {
-      setStudentEmail(first.email);
+  const filteredStudents = students.filter(
+    (s) => s.course === selectedCourse && s.role !== 'teacher' && !isTeacherAccount(s.email, s.role)
+  );
+
+  useEffect(() => {
+    if (filteredStudents.length > 0) {
+      if (!filteredStudents.some((s) => s.email === studentEmail)) {
+        setStudentEmail(filteredStudents[0].email);
+      }
     } else {
       setStudentEmail('');
     }
-  }, [selectedCourse]);
+  }, [selectedCourse, filteredStudents, studentEmail]);
 
   const isLight = theme === 'light';
   const isMatrix = theme === 'matrix';
@@ -134,14 +161,6 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
     }, 900);
   };
 
-  const isTeacher = (e: string, r: string) => {
-    const norm = e.toLowerCase().trim();
-    return r === 'teacher' || norm === 'g.asensiosanagusti@edu.gva.es' || norm.includes('asensio') || norm.includes('profesor');
-  };
-
-  const filteredStudents = students.filter(
-    (s) => s.course === selectedCourse && !isTeacher(s.email, s.role)
-  );
 
   return (
     <div

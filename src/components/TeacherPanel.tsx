@@ -184,11 +184,34 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (confirm(`¿Estás seguro de que deseas eliminar a "${name}"? Esta acción borrará sus puntos e intentos.`)) {
+  const [deletingEmail, setDeletingEmail] = useState<string | null>(null);
+
+  const handleDelete = async (id: string, name: string, email?: string) => {
+    if (email && email.toLowerCase().trim() === 'g.asensiosanagusti@edu.gva.es') {
+      alert('No se puede eliminar la cuenta del docente administrador principal.');
+      return;
+    }
+
+    if (
+      confirm(
+        `¿Estás seguro de que deseas eliminar a "${name}" (${email || id}) de la base de datos?\n\nEsta acción borrará definitivamente al usuario de la plataforma y de Supabase.`
+      )
+    ) {
       sounds.playKey();
-      await deleteStudent(id);
-      loadData();
+      setDeletingEmail(email || id);
+      try {
+        await deleteStudent(id, email);
+        sounds.playSuccess();
+        if (selectedStudent && (selectedStudent.studentId === id || selectedStudent.studentEmail === email)) {
+          setSelectedStudent(null);
+        }
+        await loadData();
+      } catch {
+        sounds.playError();
+        alert('Ocurrió un error al intentar eliminar al usuario.');
+      } finally {
+        setDeletingEmail(null);
+      }
     }
   };
 
@@ -750,22 +773,36 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                             </td>
 
                             <td className="px-4 py-3 text-right">
-                              <button
-                                onClick={() => {
-                                  sounds.playKey();
-                                  setSelectedStudent(st);
-                                }}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-medium inline-flex items-center gap-1 transition ${
-                                  isLight
-                                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                                    : isMatrix
-                                    ? 'bg-[#002b0f] hover:bg-[#004017] text-[#00ff66] border border-[#00ff66]/40'
-                                    : 'bg-gray-800 hover:bg-gray-700 text-gray-200'
-                                }`}
-                              >
-                                <span>Detalle</span>
-                                <ChevronRight className="w-3.5 h-3.5" />
-                              </button>
+                              <div className="flex items-center justify-end space-x-2">
+                                <button
+                                  onClick={() => {
+                                    sounds.playKey();
+                                    setSelectedStudent(st);
+                                  }}
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-medium inline-flex items-center gap-1 transition ${
+                                    isLight
+                                      ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                      : isMatrix
+                                      ? 'bg-[#002b0f] hover:bg-[#004017] text-[#00ff66] border border-[#00ff66]/40'
+                                      : 'bg-gray-800 hover:bg-gray-700 text-gray-200'
+                                  }`}
+                                  title="Ver detalle del usuario"
+                                >
+                                  <span>Detalle</span>
+                                  <ChevronRight className="w-3.5 h-3.5" />
+                                </button>
+
+                                {st.studentEmail.toLowerCase() !== 'g.asensiosanagusti@edu.gva.es' && (
+                                  <button
+                                    onClick={() => handleDelete(st.studentId, st.studentName, st.studentEmail)}
+                                    disabled={deletingEmail === st.studentEmail || deletingEmail === st.studentId}
+                                    className="p-1.5 text-rose-500 hover:text-rose-400 hover:bg-rose-950/50 rounded-lg transition border border-rose-900/40 disabled:opacity-50"
+                                    title="Eliminar usuario de la base de datos y de la plataforma"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
@@ -1084,13 +1121,16 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                             Pass: <code className="text-amber-400 font-bold">{st.initialPassword || 'Asignada'}</code>
                           </div>
 
-                          <button
-                            onClick={() => handleDelete(st.studentId, st.studentName)}
-                            className="p-1.5 text-gray-400 hover:text-rose-500 hover:bg-rose-950/40 rounded-lg transition"
-                            title="Eliminar usuario"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {st.studentEmail.toLowerCase() !== 'g.asensiosanagusti@edu.gva.es' && (
+                            <button
+                              onClick={() => handleDelete(st.studentId, st.studentName, st.studentEmail)}
+                              disabled={deletingEmail === st.studentEmail || deletingEmail === st.studentId}
+                              className="p-1.5 text-gray-400 hover:text-rose-500 hover:bg-rose-950/40 rounded-lg transition disabled:opacity-50"
+                              title="Eliminar usuario de la base de datos y de la plataforma"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))
@@ -1521,6 +1561,23 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
                   ))
                 )}
               </div>
+
+              {/* Botón de eliminación definitiva en base de datos desde la ficha */}
+              {selectedStudent.studentEmail.toLowerCase() !== 'g.asensiosanagusti@edu.gva.es' && (
+                <div className={`pt-3 border-t flex items-center justify-between ${isLight ? 'border-slate-200' : 'border-gray-800'}`}>
+                  <span className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
+                    ¿Eliminar este usuario de la base de datos?
+                  </span>
+                  <button
+                    onClick={() => handleDelete(selectedStudent.studentId, selectedStudent.studentName, selectedStudent.studentEmail)}
+                    disabled={deletingEmail === selectedStudent.studentEmail || deletingEmail === selectedStudent.studentId}
+                    className="px-3 py-1.5 bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800 text-rose-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition disabled:opacity-50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Eliminar de la Base de Datos</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
