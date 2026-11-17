@@ -59,7 +59,12 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
     }));
     setStudents(list);
 
-    const first = list.find((s) => s.course === selectedCourse && s.role !== 'teacher');
+    const isTeacher = (e: string, r: string) => {
+      const norm = e.toLowerCase().trim();
+      return r === 'teacher' || norm === 'g.asensiosanagusti@edu.gva.es' || norm.includes('asensio') || norm.includes('profesor');
+    };
+
+    const first = list.find((s) => s.course === selectedCourse && !isTeacher(s.email, s.role));
     if (first) {
       setStudentEmail(first.email);
     } else {
@@ -81,7 +86,7 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
     setErrorMsg('');
     setLoading(true);
 
-    const res = await loginWithCredentials(studentEmail, studentPassword);
+    const res = await loginWithCredentials(studentEmail, studentPassword, 'student');
     setLoading(false);
 
     if (res.success && res.user) {
@@ -103,7 +108,7 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
     setErrorMsg('');
     setLoading(true);
 
-    const res = await loginWithCredentials(email, password);
+    const res = await loginWithCredentials(email, password, 'teacher');
     setLoading(false);
 
     if (res.success && res.user) {
@@ -129,8 +134,13 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
     }, 900);
   };
 
+  const isTeacher = (e: string, r: string) => {
+    const norm = e.toLowerCase().trim();
+    return r === 'teacher' || norm === 'g.asensiosanagusti@edu.gva.es' || norm.includes('asensio') || norm.includes('profesor');
+  };
+
   const filteredStudents = students.filter(
-    (s) => s.course === selectedCourse && s.role !== 'teacher'
+    (s) => s.course === selectedCourse && !isTeacher(s.email, s.role)
   );
 
   return (

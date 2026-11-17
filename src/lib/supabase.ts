@@ -106,7 +106,8 @@ export function saveStoredStudents(students: StudentProgressRow[]) {
 
 export async function loginWithCredentials(
   email: string,
-  pass: string
+  pass: string,
+  loginType: 'student' | 'teacher' = 'student'
 ): Promise<{ success: boolean; user?: UserProfile; message?: string }> {
   const normalizedEmail = email.toLowerCase().trim();
 
@@ -125,29 +126,49 @@ export async function loginWithCredentials(
           .eq('id', data.user.id)
           .single();
 
+        const isKnownTeacher =
+          profile?.role === 'teacher' ||
+          data.user.user_metadata?.role === 'teacher' ||
+          normalizedEmail === 'g.asensiosanagusti@edu.gva.es' ||
+          normalizedEmail.includes('asensio') ||
+          normalizedEmail.includes('profesor');
+
+        const isExplicitStudent =
+          profile?.role === 'student' &&
+          normalizedEmail !== 'g.asensiosanagusti@edu.gva.es' &&
+          !normalizedEmail.includes('asensio') &&
+          !normalizedEmail.includes('profesor');
+
+        // Si se intenta acceder por Acceso Docente con una cuenta de alumno
+        if (loginType === 'teacher' && isExplicitStudent) {
+          return {
+            success: false,
+            message: 'Esta cuenta es de alumno. Para resolver tus retos inicia sesión desde la pestaña "Acceso Alumnos".',
+          };
+        }
+
         const role: UserRole =
-          profile?.role === 'teacher' || data.user.user_metadata?.role === 'teacher'
+          loginType === 'teacher'
             ? 'teacher'
-            : 'student';
+            : (isKnownTeacher ? 'teacher' : 'student');
+
         const course: CourseGroup = profile?.course || data.user.user_metadata?.course || '1DAM';
         const name =
           profile?.full_name ||
           data.user.user_metadata?.full_name ||
-          email.split('@')[0].replace('.', ' ');
+          (role === 'teacher' ? 'G. Asensio (Docente)' : email.split('@')[0].replace('.', ' '));
 
-        // Sincronizar en profiles si faltara
-        if (!profile) {
-          try {
-            await supabase.from('profiles').upsert({
-              id: data.user.id,
-              email: normalizedEmail,
-              full_name: name,
-              role,
-              course,
-              avatar_url: role === 'teacher' ? '🛡️' : '👨‍💻',
-            });
-          } catch {}
-        }
+        // Sincronizar en profiles con rol docente
+        try {
+          await supabase.from('profiles').upsert({
+            id: data.user.id,
+            email: normalizedEmail,
+            full_name: name,
+            role,
+            course,
+            avatar_url: role === 'teacher' ? '🛡️' : '👨‍💻',
+          });
+        } catch {}
 
         const user: UserProfile = {
           id: data.user.id,
@@ -155,12 +176,12 @@ export async function loginWithCredentials(
           name,
           role,
           course,
-          xp: profile?.xp || (role === 'teacher' ? 9999 : 0),
-          level: profile?.level || (role === 'teacher' ? 7 : 1),
-          streak: profile?.streak || (role === 'teacher' ? 99 : 0),
-          avatar: profile?.avatar_url || (role === 'teacher' ? '🛡️' : '👨‍💻'),
+          xp: role === 'teacher' ? 9999 : (profile?.xp ?? 0),
+          level: role === 'teacher' ? 7 : (profile?.level ?? 1),
+          streak: role === 'teacher' ? 99 : (profile?.streak ?? 0),
+          avatar: role === 'teacher' ? '🛡️' : (profile?.avatar_url || '👨‍💻'),
           completed_exercises: profile?.completed_exercises || [],
-          badges: profile?.badges || (role === 'teacher' ? ['level_5_sysadmin'] : []),
+          badges: role === 'teacher' ? ['level_5_sysadmin'] : (profile?.badges || []),
         };
         saveUserToStorage(user);
         return { success: true, user };
@@ -191,24 +212,80 @@ export async function loginWithCredentials(
 
   if (found) {
     if (found.initialPassword && found.initialPassword !== pass) {
-      const roleLabel = found.role === 'teacher' ? 'este docente' : 'este alumno';
+      const roleLabel = loginType === 'teacher' || found.role === 'teacher' ? 'este docente' : 'este alumno';
       return { success: false, message: `Contraseña incorrecta para ${roleLabel}.` };
     }
-    const user: UserProfile = {
-      id: found.studentId,
-      email: found.studentEmail,
-      name: found.studentName,
-      role: found.role,
-      course: found.course,
-      xp: found.xp,
-      level: found.level,
-      streak: found.streak,
-      avatar: found.role === 'teacher' ? '🛡️' : '👨‍💻',
-      completed_exercises: found.recentAttempts.filter((a) => a.success).map((a) => a.exerciseId),
-      badges: [],
+
+    if (loginType === 'teacher') {
+      const isTeacherAccount =
+        found.role === 'teacher' ||
+        normalizedEmail === 'g.asensiosanagusti@edu.gva.es' ||
+        normalizedEmail.includes('asensio') ||
+        normalizedEmail.includes('profesor');
+
+      if (!isTeacherAccount) {
+        return {
+          success: false,
+          message: 'Esta cuenta es de alumno. Para resolver tus retos inicia sesión desde la pestaña "Acceso Alumnos".',
+        };
+      }
+
+      const user: UserProfile = {
+        id: found.studentId,
+        email: found.studentEmail,
+        name: found.studentName,
+        role: 'teacher',
+        course: found.course,
+        xp: 9999,
+        level: 7,
+        streak: 99,
+        avatar: '🛡️',
+        completed_exercises: [],
+        badges: ['level_5_sysadmin'],
+      };
+      saveUserToStorage(user);
+      return { success: true, user };
+    } else {
+      const user: UserProfile = {
+        id: found.studentId,
+        email: found.studentEmail,
+        name: found.studentName,
+        role: 'student',
+        course: found.course,
+        xp: found.xp || 0,
+        level: found.level || 1,
+        streak: found.streak || 0,
+        avatar: '👨‍💻',
+        completed_exercises: found.recentAttempts.filter((a) => a.success).map((a) => a.exerciseId),
+        badges: [],
+      };
+      saveUserToStorage(user);
+      return { success: true, user };
+    }
+  }
+
+  // 3. Fallback directo para el docente administrador principal si accede por Acceso Docente
+  if (
+    loginType === 'teacher' &&
+    (normalizedEmail === 'g.asensiosanagusti@edu.gva.es' ||
+      normalizedEmail.includes('asensio') ||
+      normalizedEmail.includes('profesor'))
+  ) {
+    const teacherUser: UserProfile = {
+      id: 'teacher-admin-id',
+      email: normalizedEmail,
+      name: 'Prof. ' + email.split('@')[0].replace('.', ' '),
+      role: 'teacher',
+      course: '1DAM',
+      xp: 9999,
+      level: 7,
+      streak: 99,
+      avatar: '🛡️',
+      completed_exercises: [],
+      badges: ['level_5_sysadmin'],
     };
-    saveUserToStorage(user);
-    return { success: true, user };
+    saveUserToStorage(teacherUser);
+    return { success: true, user: teacherUser };
   }
 
   return {
@@ -237,10 +314,28 @@ export function loginAsGuest(): UserProfile {
 }
 
 export async function getCurrentUserSession(): Promise<UserProfile | null> {
+  const isTeacherAccount = (email?: string, role?: string) => {
+    if (role === 'teacher') return true;
+    if (!email) return false;
+    const norm = email.toLowerCase().trim();
+    return norm === 'g.asensiosanagusti@edu.gva.es' || norm.includes('asensio') || norm.includes('profesor');
+  };
+
   const saved = localStorage.getItem('comandquest_active_user');
   if (saved) {
     try {
-      return JSON.parse(saved);
+      const parsed: UserProfile = JSON.parse(saved);
+      // Si la cuenta guardada es del profesor o docente, forzar rol y privilegios de docente
+      if (isTeacherAccount(parsed.email, parsed.role)) {
+        parsed.role = 'teacher';
+        parsed.avatar = '🛡️';
+        parsed.xp = Math.max(parsed.xp || 0, 9999);
+        parsed.level = Math.max(parsed.level || 1, 7);
+        parsed.streak = Math.max(parsed.streak || 0, 99);
+        parsed.badges = parsed.badges && parsed.badges.length ? parsed.badges : ['level_5_sysadmin'];
+        saveUserToStorage(parsed);
+      }
+      return parsed;
     } catch {
       // fallback
     }
@@ -256,23 +351,28 @@ export async function getCurrentUserSession(): Promise<UserProfile | null> {
           .eq('id', user.id)
           .single();
 
-        if (profile) {
-          const loaded: UserProfile = {
-            id: profile.id,
-            email: profile.email,
-            name: profile.full_name || profile.email.split('@')[0],
-            role: profile.role || 'student',
-            course: profile.course || '1DAM',
-            xp: profile.xp || 0,
-            level: profile.level || 1,
-            streak: profile.streak || 0,
-            avatar: profile.avatar_url || '⚡',
-            completed_exercises: profile.completed_exercises || [],
-            badges: profile.badges || [],
-          };
-          saveUserToStorage(loaded);
-          return loaded;
-        }
+        const userEmail = (user.email || profile?.email || '').toLowerCase().trim();
+        const teacherAccount = isTeacherAccount(userEmail, profile?.role || user.user_metadata?.role);
+        const role: UserRole = teacherAccount ? 'teacher' : 'student';
+
+        const loaded: UserProfile = {
+          id: user.id,
+          email: userEmail,
+          name:
+            role === 'teacher'
+              ? (profile?.full_name || 'Profesor (Docente)')
+              : (profile?.full_name || user.user_metadata?.full_name || userEmail.split('@')[0]),
+          role,
+          course: profile?.course || user.user_metadata?.course || '1DAM',
+          xp: role === 'teacher' ? 9999 : (profile?.xp || 0),
+          level: role === 'teacher' ? 7 : (profile?.level || 1),
+          streak: role === 'teacher' ? 99 : (profile?.streak || 0),
+          avatar: role === 'teacher' ? '🛡️' : (profile?.avatar_url || '👨‍💻'),
+          completed_exercises: profile?.completed_exercises || [],
+          badges: role === 'teacher' ? ['level_5_sysadmin'] : (profile?.badges || []),
+        };
+        saveUserToStorage(loaded);
+        return loaded;
       }
     } catch {
       // fallback

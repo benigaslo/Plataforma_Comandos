@@ -55,9 +55,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         course: s.course,
         role: s.role,
       }));
+      const isTeacher = (e: string, r: string) => {
+        const norm = e.toLowerCase().trim();
+        return r === 'teacher' || norm === 'g.asensiosanagusti@edu.gva.es' || norm.includes('asensio') || norm.includes('profesor');
+      };
       setAvailableStudents(list);
       if (list.length > 0 && !selectedStudentEmail) {
-        const first = list.find((s) => s.course === selectedCourse && s.role !== 'teacher') || list[0];
+        const first = list.find((s) => s.course === selectedCourse && !isTeacher(s.email, s.role)) || list[0];
         if (first) setSelectedStudentEmail(first.email);
       }
     }
@@ -79,7 +83,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setErrorMsg('');
     setLoading(true);
 
-    const res = await loginWithCredentials(email, password);
+    const normEmail = email.toLowerCase().trim();
+    const isDocente =
+      normEmail === 'g.asensiosanagusti@edu.gva.es' ||
+      normEmail.includes('asensio') ||
+      normEmail.includes('profesor');
+
+    const res = await loginWithCredentials(
+      email,
+      password,
+      isDocente ? 'teacher' : 'student'
+    );
     setLoading(false);
 
     if (res.success && res.user) {
@@ -106,7 +120,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setErrorMsg('');
     setLoading(true);
 
-    const res = await loginWithCredentials(selectedStudentEmail, quickPassword);
+    const res = await loginWithCredentials(selectedStudentEmail, quickPassword, 'student');
     setLoading(false);
 
     if (res.success && res.user) {
@@ -129,8 +143,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     onClose();
   };
 
+  const isTeacher = (e: string, r: string) => {
+    const norm = e.toLowerCase().trim();
+    return r === 'teacher' || norm === 'g.asensiosanagusti@edu.gva.es' || norm.includes('asensio') || norm.includes('profesor');
+  };
+
   const filteredStudents = availableStudents.filter(
-    (s) => s.course === selectedCourse && s.role !== 'teacher'
+    (s) => s.course === selectedCourse && !isTeacher(s.email, s.role)
   );
 
   return (
