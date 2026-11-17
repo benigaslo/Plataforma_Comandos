@@ -4,14 +4,10 @@ import {
   loginWithCredentials,
   logoutUser,
   getStoredStudents,
-  switchRole,
 } from '../lib/supabase';
 import { sounds } from '../lib/sound';
 import {
   LogIn,
-  UserCheck,
-  ShieldAlert,
-  Info,
   X,
   LogOut,
   GraduationCap,
@@ -130,13 +126,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     sounds.playKey();
     await logoutUser();
     onUserChange(null);
-    onClose();
-  };
-
-  const selectDemoRole = (role: 'student' | 'teacher') => {
-    sounds.playKey();
-    const u = switchRole(role);
-    onUserChange(u);
     onClose();
   };
 
@@ -474,44 +463,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </button>
           </form>
         )}
-
-        {/* Demo Fast Switch (For quick test switching) */}
-        <div className={`pt-2 border-t space-y-2 ${isLight ? 'border-slate-200' : 'border-gray-800'}`}>
-          <div className={`text-[11px] text-center flex items-center justify-center gap-1 ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
-            <Info className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Accesos rápidos de prueba de desarrollo:</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => selectDemoRole('student')}
-              className={`p-2 rounded-xl text-xs font-semibold border flex items-center justify-center space-x-1 transition ${
-                currentUser?.role === 'student'
-                  ? 'bg-emerald-950/60 border-emerald-500 text-emerald-300'
-                  : isLight
-                  ? 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200'
-                  : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'
-              }`}
-            >
-              <UserCheck className="w-3.5 h-3.5" />
-              <span>Alumno Demo</span>
-            </button>
-
-            <button
-              onClick={() => selectDemoRole('teacher')}
-              className={`p-2 rounded-xl text-xs font-semibold border flex items-center justify-center space-x-1 transition ${
-                currentUser?.role === 'teacher'
-                  ? 'bg-indigo-950/60 border-indigo-500 text-indigo-300'
-                  : isLight
-                  ? 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200'
-                  : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'
-              }`}
-            >
-              <ShieldAlert className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Docente Demo</span>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

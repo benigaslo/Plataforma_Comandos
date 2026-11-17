@@ -4,7 +4,6 @@ import {
   loginWithCredentials,
   getStoredStudents,
   loginAsGuest,
-  switchRole,
 } from '../lib/supabase';
 import { sounds } from '../lib/sound';
 import { MatrixRain } from './MatrixRain';
@@ -119,12 +118,6 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
     sounds.playKey();
     const guest = loginAsGuest();
     triggerAccessGranted(guest);
-  };
-
-  const handleQuickDemo = (role: 'student' | 'teacher') => {
-    sounds.playKey();
-    const user = switchRole(role);
-    triggerAccessGranted(user);
   };
 
   const triggerAccessGranted = (user: UserProfile) => {
@@ -580,25 +573,6 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                   <span>Probar en modo invitado (práctica libre sin guardar progreso)</span>
                 </button>
-
-                <div className="flex items-center gap-2 pt-1 text-[11px] text-gray-500">
-                  <span>Pruebas rápidas:</span>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDemo('student')}
-                    className="hover:underline text-cyan-400 font-mono"
-                  >
-                    Alumno Demo
-                  </button>
-                  <span>•</span>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDemo('teacher')}
-                    className="hover:underline text-indigo-400 font-mono"
-                  >
-                    Docente Demo
-                  </button>
-                </div>
               </div>
             </>
           )}

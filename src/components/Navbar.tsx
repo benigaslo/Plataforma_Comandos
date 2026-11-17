@@ -8,7 +8,6 @@ import {
   VolumeX,
   Award,
   Flame,
-  ShieldAlert,
   Sparkles,
   UserCheck,
   Trophy,
@@ -25,7 +24,6 @@ interface NavbarProps {
   onOpenBadges: () => void;
   onOpenLeaderboard: () => void;
   onOpenAuth: () => void;
-  onToggleRole: () => void;
   onOpenTeacherPanel: () => void;
   soundEnabled: boolean;
   onToggleSound: () => void;
@@ -40,7 +38,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenBadges,
   onOpenLeaderboard,
   onOpenAuth,
-  onToggleRole,
   onOpenTeacherPanel,
   soundEnabled,
   onToggleSound,
@@ -411,27 +408,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             <LogIn className="w-3.5 h-3.5 opacity-60 ml-0.5" />
           </button>
 
-          {/* Teacher Mode Button */}
-          {user.role === 'teacher' ? (
+          {/* Teacher Mode Button (Solo visible para usuarios con rol docente) */}
+          {user.role === 'teacher' && (
             <button
               onClick={onOpenTeacherPanel}
               className="flex items-center space-x-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-3.5 py-1.5 rounded-2xl text-xs font-black shadow-lg shadow-indigo-500/30 transition"
+              title="Abrir Panel de Control Docente"
             >
               <UserCheck className="w-4 h-4" />
               <span>Docente</span>
-            </button>
-          ) : (
-            <button
-              onClick={onToggleRole}
-              className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-2xl text-[11px] border transition ${
-                isLight
-                  ? 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200'
-                  : 'bg-gray-900/80 hover:bg-gray-800 text-gray-400 hover:text-gray-200 border-gray-800'
-              }`}
-              title="Cambiar a vista docente"
-            >
-              <ShieldAlert className="w-3.5 h-3.5 text-indigo-500" />
-              <span className="hidden md:inline">Docente</span>
             </button>
           )}
         </div>

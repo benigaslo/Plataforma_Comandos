@@ -125,13 +125,10 @@ export async function loginWithCredentials(
           .eq('id', data.user.id)
           .single();
 
-        const isTeacher =
-          profile?.role === 'teacher' ||
-          data.user.user_metadata?.role === 'teacher' ||
-          normalizedEmail.includes('asensio') ||
-          normalizedEmail.includes('profesor');
-
-        const role: UserRole = isTeacher ? 'teacher' : (profile?.role || 'student');
+        const role: UserRole =
+          profile?.role === 'teacher' || data.user.user_metadata?.role === 'teacher'
+            ? 'teacher'
+            : 'student';
         const course: CourseGroup = profile?.course || data.user.user_metadata?.course || '1DAM';
         const name =
           profile?.full_name ||
@@ -214,29 +211,9 @@ export async function loginWithCredentials(
     return { success: true, user };
   }
 
-  // 3. Fallback permisivo para docentes si es correo de profesor
-  const isTeacher = normalizedEmail.includes('prof') || normalizedEmail.includes('asensio');
-  if (isTeacher) {
-    const fallbackUser: UserProfile = {
-      id: 'teacher_' + Date.now(),
-      email: normalizedEmail,
-      name: 'Prof. ' + email.split('@')[0].replace('.', ' '),
-      role: 'teacher',
-      course: '1DAM',
-      xp: 9999,
-      level: 7,
-      streak: 99,
-      avatar: '🛡️',
-      completed_exercises: [],
-      badges: ['level_5_sysadmin'],
-    };
-    saveUserToStorage(fallbackUser);
-    return { success: true, user: fallbackUser };
-  }
-
   return {
     success: false,
-    message: 'Usuario no encontrado. Asegúrate de estar dado de alta por el profesor.',
+    message: 'Usuario no encontrado o contraseña incorrecta. Asegúrate de estar dado de alta por el profesor.',
   };
 }
 

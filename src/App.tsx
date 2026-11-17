@@ -5,7 +5,6 @@ import { BADGES } from './data/badges';
 import {
   getCurrentUserSession,
   recordExerciseCompletion,
-  switchRole,
 } from './lib/supabase';
 import { sounds } from './lib/sound';
 import { Navbar } from './components/Navbar';
@@ -142,13 +141,6 @@ export const App: React.FC = () => {
     localStorage.setItem('comandquest_crt', String(next));
   };
 
-  const handleToggleRole = () => {
-    if (!user) return;
-    const newRole = user.role === 'student' ? 'teacher' : 'student';
-    const updated = switchRole(newRole);
-    setUser(updated);
-  };
-
   if (!sessionChecked) {
     return (
       <div className="min-h-screen bg-[#030805] flex items-center justify-center text-[#00ff66] font-mono text-sm matrix-glow">
@@ -183,7 +175,6 @@ export const App: React.FC = () => {
         onOpenBadges={() => setIsBadgesOpen(true)}
         onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
         onOpenAuth={() => setIsAuthOpen(true)}
-        onToggleRole={handleToggleRole}
         onOpenTeacherPanel={() => setIsTeacherPanelOpen(true)}
         soundEnabled={soundEnabled}
         onToggleSound={handleToggleSound}

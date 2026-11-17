@@ -95,8 +95,7 @@ declare
   user_course text;
   assigned_role text;
 begin
-  is_teacher := coalesce((new.raw_user_meta_data->>'role' = 'teacher'), false)
-                or (new.email ilike '%gasensio%' or new.email ilike '%profesor%');
+  is_teacher := coalesce((new.raw_user_meta_data->>'role' = 'teacher'), false);
   assigned_role := case when is_teacher then 'teacher' else coalesce(new.raw_user_meta_data->>'role', 'student') end;
   user_course := coalesce(new.raw_user_meta_data->>'course', '1DAM');
 
